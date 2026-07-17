@@ -54,5 +54,5 @@ def server_error(e):
 # 5. Boot Application
 if __name__ == '__main__':
     log_event("INFO", "System", "FaceTrack AI application booted successfully.")
-    # Run locally on 127.0.0.1:5001 (standard port setup)
-    app.run(host='127.0.0.1', port=5001, debug=True)
+    # Run on all network interfaces to allow local network connections
+    app.run(host='0.0.0.0', port=5001, debug=True)
