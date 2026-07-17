@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }}'s Profile - FaceTrack AI{% endblock %}
+
+{% block header_title %}Student Profile{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Profile Card (Left Column) -->
+    <div class="col-xl-4 col-lg-5">
+        <div class="glass-card p-4 text-center h-100">
+            <!-- Student Photo -->
+            <div class="position-relative d-inline-block mb-4">
+                {% if student.photo_path %}
+                    <img src="{{ url_for('static', filename=student.photo_path) if not student.photo_path.startswith('uploads/') else '/' + student.photo_path }}" alt="Photo" class="rounded-circle border border-secondary" style="width: 150px; height: 150px; object-fit: cover; border-width: 4px !important;">
+                {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-secondary bg-opacity-20 text-muted mx-auto border border-secondary" style="width: 150px; height: 150px; font-size: 3rem; font-weight: 700; border-width: 4px !important;">
+                        {{ student.name[:1].upper() }}
+                    </div>
+                {% endif %}
+                
+                <!-- Enrollment Indicator Dot -->
+                <span class="position-absolute bottom-0 end-0 translate-middle-y rounded-circle bg-{% if is_enrolled %}success{% else %}danger{% endif %}" style="width: 20px; height: 20px; border: 3px solid var(--bg-primary); box-shadow: 0 0 10px rgba(0,0,0,0.5);" title="{% if is_enrolled %}Face enrolled{% else %}Face not registered{% endif %}"></span>
+            </div>
+            
+            <h4 class="fw-bold mb-1">{{ student.name }}</h4>
+            <div class="badge bg-secondary bg-opacity-20 text-muted font-monospace px-3 py-2 rounded-pill small mb-4">
+                {{ student.student_id }}
+            </div>
+            
+            <!-- Biometric Enrollment Status Panel -->
+            <div class="p-3 rounded-4 mb-4 text-start {% if is_enrolled %}bg-success{% else %}bg-danger{% endif %} bg-opacity-10 border border-{% if is_enrolled %}success{% else %}danger{% endif %} border-opacity-25">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="fs-2 text-{% if is_enrolled %}success{% else %}danger{% endif %}">
+                        <i class="bi {% if is_enrolled %}bi-patch-check-fill{% else %}bi-shield-exclamation{% endif %}"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-white">Face Biometrics</h6>
+                        <span class="small text-muted">
+                            {% if is_enrolled %}
+                                Face encoding is enrolled and verified in the database.
+                            {% else %}
+                                Face scanning has not been completed yet.
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a href="{{ url_for('students.enroll', student_id=student.student_id) }}" class="btn btn-sm btn-{% if is_enrolled %}glass-secondary{% else %}glass{% endif %} w-100 py-2">
+                        <i class="bi bi-camera-fill me-1"></i>{% if is_enrolled %}Re-enroll Face Biometrics{% else %}Enroll Face Biometrics{% endif %}
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Personal Info list -->
+            <div class="text-start">
+                <div class="mb-3">
+                    <span class="text-muted small d-block">Department</span>
+                    <span class="fw-medium text-white">{{ student.department }}</span>
+                </div>
+                <div class="mb-3">
+                    <span class="text-muted small d-block">Semester</span>
+                    <span class="fw-medium text-white">{{ student.semester }}</span>
+                </div>
+                <div class="mb-3">
+                    <span class="text-muted small d-block">Roll Number</span>
+                    <span class="fw-medium text-white">{{ student.roll_number }}</span>
+                </div>
+                <div class="mb-3">
+                    <span class="text-muted small d-block">Email Address</span>
+                    <span class="fw-medium text-white">{{ student.email }}</span>
+                </div>
+                <div class="mb-0">
+                    <span class="text-muted small d-block">Phone Number</span>
+                    <span class="fw-medium text-white">{{ student.phone or 'Not Provided' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column (Stats & Logs) -->
+    <div class="col-xl-8 col-lg-7 d-flex flex-column gap-4">
+        <!-- Attendance Stats row -->
+        <div class="row g-3">
+            <div class="col-sm-6 col-md-3">
+                <div class="glass-card p-3 text-center">
+                    <span class="text-muted small d-block mb-1">Attendance Rate</span>
+                    <h3 class="fw-bold mb-0 text-glow {% if attendance_rate >= 75 %}text-success{% elif attendance_rate >= 50 %}text-warning{% else %}text-danger{% endif %}">{{ attendance_rate }}%</h3>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="glass-card p-3 text-center" style="border-bottom: 3px solid var(--color-success);">
+                    <span class="text-muted small d-block mb-1">Present</span>
+                    <h3 class="fw-bold mb-0 text-success">{{ present_count }}</h3>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="glass-card p-3 text-center" style="border-bottom: 3px solid var(--color-warning);">
+                    <span class="text-muted small d-block mb-1">Late Arrivals</span>
+                    <h3 class="fw-bold mb-0 text-warning">{{ late_count }}</h3>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="glass-card p-3 text-center" style="border-bottom: 3px solid var(--color-danger);">
+                    <span class="text-muted small d-block mb-1">Absent Days</span>
+                    <h3 class="fw-bold mb-0 text-danger">{{ absent_count }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Logs Card -->
+        <div class="glass-card p-4 flex-grow-1">
+            <h5 class="fw-bold mb-4"><i class="bi bi-clock-history me-2 accent-color"></i>Recent Attendance Records</h5>
+            <div class="table-responsive">
+                <table class="table table-glass align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Method</th>
+                            <th>Confidence</th>
+                            <th>Emotion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if recent_attendance %}
+                            {% for log in recent_attendance %}
+                                <tr>
+                                    <td>{{ log.date }}</td>
+                                    <td>{{ log.time }}</td>
+                                    <td>
+                                        {% if log.status == 'Present' %}
+                                            <span class="badge bg-success bg-opacity-20 text-success rounded-pill px-3 py-1">Present</span>
+                                        {% elif log.status == 'Late' %}
+                                            <span class="badge bg-warning bg-opacity-20 text-warning rounded-pill px-3 py-1">Late</span>
+                                        {% else %}
+                                            <span class="badge bg-danger bg-opacity-20 text-danger rounded-pill px-3 py-1">Absent</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.method == 'Face' %}
+                                            <i class="bi bi-camera-reconnection accent-color me-1"></i>FaceScan
+                                        {% else %}
+                                            <i class="bi bi-pencil-square text-muted me-1"></i>Manual
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.confidence %}
+                                            <span class="font-monospace">{{ log.confidence }}%</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.emotion %}
+                                            <span class="badge bg-secondary bg-opacity-20 text-white rounded-pill px-2 py-1 small">
+                                                {{ log.emotion.capitalize() }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-calendar-x fs-1 d-block mb-3 opacity-30"></i>
+                                    No attendance records logged yet.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // If redirected from registration with start_face_reg flag
+    if ("{{ start_face_reg }}" === "True") {
+        setTimeout(() => {
+            if (confirm("Proceed to Face Biometrics Registration now?")) {
+                window.location.href = "{{ url_for('students.enroll', student_id=student.student_id) }}";
+            }
+        }, 500);
+    }
+});
+</script>
+{% endblock %}

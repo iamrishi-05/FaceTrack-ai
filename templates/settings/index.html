@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings - FaceTrack AI{% endblock %}
+
+{% block header_title %}System Settings & Controls{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Profile & Security Column (Left) -->
+    <div class="col-lg-6 d-flex flex-column gap-4">
+        <!-- Profile Update -->
+        <div class="glass-card p-4">
+            <h5 class="fw-bold mb-4"><i class="bi bi-person-circle me-2 accent-color"></i>Admin Profile Settings</h5>
+            
+            <form action="{{ url_for('settings.profile') }}" method="POST">
+                <div class="mb-3">
+                    <label for="name" class="form-label form-label-glass">Administrator Name</label>
+                    <input type="text" class="form-control form-glass" id="name" name="name" value="{{ admin.name }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label form-label-glass">Registered Email Address</label>
+                    <input type="email" class="form-control form-glass" id="email" name="email" value="{{ admin.email }}" required>
+                </div>
+                <button type="submit" class="btn btn-glass px-4 py-2 mt-2">Save Profile Details</button>
+            </form>
+        </div>
+        
+        <!-- Password rotation -->
+        <div class="glass-card p-4">
+            <h5 class="fw-bold mb-4"><i class="bi bi-shield-lock-fill me-2 accent-color"></i>Change Password</h5>
+            
+            <form action="{{ url_for('settings.password') }}" method="POST">
+                <div class="mb-3">
+                    <label for="old_password" class="form-label form-label-glass">Current Password</label>
+                    <input type="password" class="form-control form-glass" id="old_password" name="old_password" required>
+                </div>
+                <div class="mb-3">
+                    <label for="new_password" class="form-label form-label-glass">New Password</label>
+                    <input type="password" class="form-control form-glass" id="new_password" name="new_password" required>
+                </div>
+                <div class="mb-3">
+                    <label for="confirm_password" class="form-label form-label-glass">Confirm New Password</label>
+                    <input type="password" class="form-control form-glass" id="confirm_password" name="confirm_password" required>
+                </div>
+                <button type="submit" class="btn btn-glass px-4 py-2 mt-2">Update Password</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- System & Database Column (Right) -->
+    <div class="col-lg-6 d-flex flex-column gap-4">
+        <!-- Biometric / Camera Configs -->
+        <div class="glass-card p-4">
+            <h5 class="fw-bold mb-4"><i class="bi bi-sliders me-2 accent-color"></i>Biometric & System Configuration</h5>
+            
+            <form action="{{ url_for('settings.system') }}" method="POST">
+                <!-- Match Tolerance Slider -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label for="tolerance" class="form-label form-label-glass mb-0">Biometric Match Tolerance</label>
+                        <span class="font-monospace accent-color small" id="toleranceVal">{{ settings.tolerance or '0.5' }}</span>
+                    </div>
+                    <input type="range" class="form-range" id="tolerance" name="tolerance" min="0.3" max="0.7" step="0.05" value="{{ settings.tolerance or '0.5' }}" oninput="document.getElementById('toleranceVal').innerText = this.value">
+                    <div class="form-text text-muted small mt-1" style="font-size: 0.75rem;">Lower means more strict (reduces false positives, increases false negatives).</div>
+                </div>
+                
+                <!-- Confidence Threshold -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label for="confidence_threshold" class="form-label form-label-glass mb-0">Display Confidence Cutoff %</label>
+                        <span class="font-monospace accent-color small" id="confidenceVal">{{ settings.confidence_threshold or '60.0' }}%</span>
+                    </div>
+                    <input type="range" class="form-range" id="confidence_threshold" name="confidence_threshold" min="40" max="90" step="5" value="{{ settings.confidence_threshold or '60' }}" oninput="document.getElementById('confidenceVal').innerText = this.value + '%'">
+                </div>
+                
+                <!-- Shift timings -->
+                <div class="mb-3">
+                    <label for="attendance_start" class="form-label form-label-glass">Shift Starting Time Limit (24h)</label>
+                    <input type="time" class="form-control form-glass" id="attendance_start" name="attendance_start" value="{{ settings.attendance_start or '09:00' }}" required>
+                    <div class="form-text text-muted small mt-1" style="font-size: 0.75rem;">Scans past this time + 15 minutes buffer are marked as "Late".</div>
+                </div>
+                
+                <input type="hidden" name="camera_index" value="{{ settings.camera_index or '0' }}">
+                <input type="hidden" name="theme" value="{{ settings.theme or 'dark' }}">
+                
+                <button type="submit" class="btn btn-glass px-4 py-2 mt-2">Save System Configurations</button>
+            </form>
+        </div>
+        
+        <!-- Database backup restoration -->
+        <div class="glass-card p-4 flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0"><i class="bi bi-database-fill-gear me-2 accent-color"></i>Database Management</h5>
+                
+                <form action="{{ url_for('settings.backup') }}" method="POST">
+                    <button type="submit" class="btn btn-glass-secondary btn-sm py-2">
+                        <i class="bi bi-plus-circle-fill me-1"></i>Create Checkpoint
+                    </button>
+                </form>
+            </div>
+            
+            <span class="text-muted small d-block mb-3">Backup History checkpoints:</span>
+            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                <table class="table table-glass align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr>
+                            <th>Backup Name</th>
+                            <th>Size</th>
+                            <th>Date Generated</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if backups %}
+                            {% for b in backups %}
+                                <tr>
+                                    <td class="font-monospace text-glow text-white" style="word-break: break-all;">{{ b.filename }}</td>
+                                    <td>{{ b.size_kb }} KB</td>
+                                    <td>{{ b.created_at }}</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-outline-warning btn-sm rounded-3 py-1 px-2" title="Restore this backup" onclick="confirmRestore('{{ b.filename }}')">
+                                            <i class="bi bi-arrow-clockwise"></i> Restore
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    No database backup checkpoints stored yet.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmRestore(filename) {
+    if (confirm(`CAUTION: Are you sure you want to restore the system state from: '${filename}'?\nThis will overwrite your active database records with the saved state.`)) {
+        window.location.href = `{{ url_for('settings.index') }}/restore/${filename}`;
+    }
+}
+</script>
+{% endblock %}

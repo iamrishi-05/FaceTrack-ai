@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Student - FaceTrack AI{% endblock %}
+
+{% block header_title %}Edit Student Details{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="glass-card p-4 p-md-5">
+            <div class="d-flex align-items-center justify-content-between mb-4 border-bottom border-secondary border-opacity-10 pb-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-pencil-square me-2 accent-color"></i>Update Information</h5>
+                <a href="{{ url_for('students.index') }}" class="btn btn-glass-secondary btn-sm py-1"><i class="bi bi-arrow-left me-1"></i>Back to List</a>
+            </div>
+            
+            <form action="{{ url_for('students.edit', db_id=student.id) }}" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                <div class="row g-3">
+                    
+                    <!-- ID and Name -->
+                    <div class="col-md-6">
+                        <label class="form-label form-label-glass">Unique Student ID</label>
+                        <input type="text" class="form-control form-glass font-monospace fw-bold opacity-60" value="{{ student.student_id }}" disabled readonly>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="name" class="form-label form-label-glass">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-glass" id="name" name="name" placeholder="Johnathan Doe" value="{{ student.name }}" required>
+                        <div class="invalid-feedback">Full name is required.</div>
+                    </div>
+                    
+                    <!-- Roll Number and Phone -->
+                    <div class="col-md-6">
+                        <label for="roll_number" class="form-label form-label-glass">Roll Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-glass" id="roll_number" name="roll_number" placeholder="CS-04" value="{{ student.roll_number }}" required>
+                        <div class="invalid-feedback">Roll number is required.</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="phone" class="form-label form-label-glass">Phone Number</label>
+                        <input type="tel" class="form-control form-glass" id="phone" name="phone" placeholder="9876543210" value="{{ student.phone or '' }}">
+                    </div>
+                    
+                    <!-- Email -->
+                    <div class="col-12">
+                        <label for="email" class="form-label form-label-glass">Email Address <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control form-glass" id="email" name="email" placeholder="john.doe@university.edu" value="{{ student.email }}" required>
+                        <div class="invalid-feedback">A valid email address is required.</div>
+                    </div>
+                    
+                    <!-- Department and Semester -->
+                    <div class="col-md-6">
+                        <label for="department" class="form-label form-label-glass">Department <span class="text-danger">*</span></label>
+                        <select class="form-select form-glass" id="department" name="department" required>
+                            <option value="Computer Science" {% if student.department == 'Computer Science' %}selected{% endif %}>Computer Science & Engineering</option>
+                            <option value="Information Technology" {% if student.department == 'Information Technology' %}selected{% endif %}>Information Technology</option>
+                            <option value="Electronics & Comm" {% if student.department == 'Electronics & Comm' %}selected{% endif %}>Electronics & Communication</option>
+                            <option value="Electrical Eng" {% if student.department == 'Electrical Eng' %}selected{% endif %}>Electrical Engineering</option>
+                            <option value="Mechanical Eng" {% if student.department == 'Mechanical Eng' %}selected{% endif %}>Mechanical Engineering</option>
+                            <option value="Civil Eng" {% if student.department == 'Civil Eng' %}selected{% endif %}>Civil Engineering</option>
+                            <option value="Business Admin" {% if student.department == 'Business Admin' %}selected{% endif %}>Business Administration</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a department.</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="semester" class="form-label form-label-glass">Semester <span class="text-danger">*</span></label>
+                        <select class="form-select form-glass" id="semester" name="semester" required>
+                            <option value="Semester 1" {% if student.semester == 'Semester 1' %}selected{% endif %}>Semester 1</option>
+                            <option value="Semester 2" {% if student.semester == 'Semester 2' %}selected{% endif %}>Semester 2</option>
+                            <option value="Semester 3" {% if student.semester == 'Semester 3' %}selected{% endif %}>Semester 3</option>
+                            <option value="Semester 4" {% if student.semester == 'Semester 4' %}selected{% endif %}>Semester 4</option>
+                            <option value="Semester 5" {% if student.semester == 'Semester 5' %}selected{% endif %}>Semester 5</option>
+                            <option value="Semester 6" {% if student.semester == 'Semester 6' %}selected{% endif %}>Semester 6</option>
+                            <option value="Semester 7" {% if student.semester == 'Semester 7' %}selected{% endif %}>Semester 7</option>
+                            <option value="Semester 8" {% if student.semester == 'Semester 8' %}selected{% endif %}>Semester 8</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a semester.</div>
+                    </div>
+                    
+                    <!-- Profile Photo File Upload -->
+                    <div class="col-12 mb-3">
+                        <label for="photo" class="form-label form-label-glass">Replace Profile Photo (Optional)</label>
+                        <input class="form-control form-glass" type="file" id="photo" name="photo" accept=".png, .jpg, .jpeg">
+                        {% if student.photo_path %}
+                            <div class="mt-2 d-flex align-items-center gap-2">
+                                <span class="small text-muted">Current photo:</span>
+                                <a href="{{ url_for('static', filename=student.photo_path) if not student.photo_path.startswith('uploads/') else '/' + student.photo_path }}" target="_blank" class="accent-color small text-glow text-decoration-none">View current image</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                </div>
+
+                <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 d-flex gap-3">
+                    <button type="submit" class="btn btn-glass px-5 py-3"><i class="bi bi-save2-fill me-2"></i>Save Modifications</button>
+                    <a href="{{ url_for('students.index') }}" class="btn btn-glass-secondary px-4 py-3">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Bootstrap Form Validation Script
+(function () {
+  'use strict'
+  const forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+})()
+</script>
+{% endblock %}

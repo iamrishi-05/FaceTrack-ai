@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}Face Scanner - FaceTrack AI{% endblock %}
+
+{% block header_title %}Live Face recognition Terminal{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Camera feed column (Left) -->
+    <div class="col-lg-7">
+        <div class="glass-card p-4 text-center">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h5 class="fw-bold mb-0 text-start"><i class="bi bi-camera-reconnection me-2 accent-color text-glow"></i>Live Recognition Feed</h5>
+                
+                {% if not face_rec_ready %}
+                    <span class="badge bg-warning bg-opacity-20 text-warning px-3 py-1 rounded-pill small" title="C-linked library is missing. Using high-fidelity Haar Cascade fallback.">
+                        <i class="bi bi-cpu-fill me-1"></i>Camera Simulation Active
+                    </span>
+                {% else %}
+                    <span class="badge bg-success bg-opacity-20 text-success px-3 py-1 rounded-pill small">
+                        <i class="bi bi-shield-fill-check me-1"></i>Biometric Matcher Active
+                    </span>
+                {% endif %}
+            </div>
+            
+            <div class="scanner-frame-wrapper mb-3">
+                <video id="webcam" class="scanner-video-element" autoplay playsinline></video>
+                <canvas id="overlayCanvas" class="scanner-canvas-element"></canvas>
+                <div class="scan-overlay-active"></div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="d-flex justify-content-between align-items-center gap-3">
+                <select class="form-select form-glass w-auto" id="cameraSelect">
+                    <option value="">Default Camera</option>
+                </select>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-glass px-4" id="toggleScanBtn"><i class="bi bi-camera-fill me-1"></i>Start Scanner</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI Status & Recent logs column (Right) -->
+    <div class="col-lg-5 d-flex flex-column gap-4">
+        <!-- AI Features Metrics Card -->
+        <div class="glass-card p-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-cpu me-2 accent-color"></i>Liveness & Feature Analysis</h5>
+            
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
+                        <span class="text-muted small d-block mb-1">Blink State</span>
+                        <h6 class="fw-bold mb-0 text-glow" id="statBlink"><span class="text-muted">No Face</span></h6>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
+                        <span class="text-muted small d-block mb-1">Smile State</span>
+                        <h6 class="fw-bold mb-0 text-glow" id="statSmile"><span class="text-muted">No Face</span></h6>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
+                        <span class="text-muted small d-block mb-1">Mask Detect</span>
+                        <h6 class="fw-bold mb-0 text-glow" id="statMask"><span class="text-muted">No Face</span></h6>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
+                        <span class="text-muted small d-block mb-1">Emotion</span>
+                        <h6 class="fw-bold mb-0 text-glow text-uppercase" id="statEmotion"><span class="text-muted">No Face</span></h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scanner Session Scan Logs Card -->
+        <div class="glass-card p-4 flex-grow-1 d-flex flex-column" style="max-height: 400px;">
+            <h5 class="fw-bold mb-3"><i class="bi bi-clock-history me-2 accent-color"></i>Session Logs</h5>
+            
+            <div class="overflow-y-auto flex-grow-1" id="sessionLogsContainer" style="font-size: 0.85rem;">
+                <div class="text-center text-muted py-5" id="noLogsPlaceholder">
+                    <i class="bi bi-qr-code-scan fs-2 d-block mb-2 opacity-30"></i>
+                    Start scanning to log check-ins.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let localStream = null;
+let isScanning = false;
+let recognitionLoop = null;
+const video = document.getElementById("webcam");
+const canvas = document.getElementById("overlayCanvas");
+const ctx = canvas.getContext("2d");
+const toggleScanBtn = document.getElementById("toggleScanBtn");
+
+// Session logged students list cache to prevent re-marking spam logs in the side panel
+const loggedSessionStudents = new Set();
+
+// Access Cameras list
+async function getCameras() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const select = document.getElementById("cameraSelect");
+        select.innerHTML = "";
+        devices.forEach(device => {
+            if (device.kind === "videoinput") {
+                const opt = document.createElement("option");
+                opt.value = device.deviceId;
+                opt.textContent = device.label || `Camera ${select.length + 1}`;
+                select.appendChild(opt);
+            }
+        });
+    } catch (err) {
+        console.error("Failed to list cameras", err);
+    }
+}
+
+// Start Stream
+async function startWebcam() {
+    const select = document.getElementById("cameraSelect");
+    const constraints = {
+        video: select.value ? { deviceId: { exact: select.value } } : true,
+        audio: false
+    };
+    
+    try {
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+        }
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = localStream;
+        
+        video.onloadedmetadata = () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+        };
+    } catch (err) {
+        console.error("Camera access failed", err);
+        showToast("Webcam initialization failed", "danger");
+    }
+}
+
+// Document Load
+document.addEventListener("DOMContentLoaded", async () => {
+    await getCameras();
+    
+    toggleScanBtn.addEventListener("click", async () => {
+        if (!localStream) {
+            await startWebcam();
+        }
+        
+        if (isScanning) {
+            stopScanner();
+        } else {
+            startScanner();
+        }
+    });
+    
+    document.getElementById("cameraSelect").addEventListener("change", async () => {
+        if (localStream) {
+            await startWebcam();
+            if (isScanning) {
+                stopScanner();
+                startScanner();
+            }
+        }
+    });
+});
+
+function startScanner() {
+    isScanning = true;
+    toggleScanBtn.innerHTML = '<i class="bi bi-camera-video-off-fill me-1"></i>Stop Scanner';
+    toggleScanBtn.className = "btn btn-glass-secondary px-4";
+    showToast("Face scanner initialized", "info");
+    
+    // Poll recognizer every 400ms
+    recognitionLoop = setInterval(processFrame, 400);
+}
+
+function stopScanner() {
+    isScanning = false;
+    clearInterval(recognitionLoop);
+    toggleScanBtn.innerHTML = '<i class="bi bi-camera-fill me-1"></i>Start Scanner';
+    toggleScanBtn.className = "btn btn-glass px-4";
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    resetIndicators();
+}
+
+function resetIndicators() {
+    document.getElementById("statBlink").innerHTML = '<span class="text-muted">No Face</span>';
+    document.getElementById("statSmile").innerHTML = '<span class="text-muted">No Face</span>';
+    document.getElementById("statMask").innerHTML = '<span class="text-muted">No Face</span>';
+    document.getElementById("statEmotion").innerHTML = '<span class="text-muted">No Face</span>';
+}
+
+function processFrame() {
+    if (!isScanning) return;
+    
+    // Draw current frame to canvas
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const frameData = canvas.toDataURL("image/jpeg", 0.7);
+    
+    // Clear canvas prior to drawing bounding boxes
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    fetch("{{ url_for('api.recognize_attendance') }}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: frameData })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'processed' && data.faces.length > 0) {
+            drawFaceBoxes(data.faces);
+            updateIndicators(data.faces[0].features);
+            
+            // Check for matched checkin
+            data.faces.forEach(face => {
+                if (face.status === 'matched') {
+                    handleScanSuccess(face.student, face.attendance, face.confidence);
+                } else {
+                    handleScanUnknown();
+                }
+            });
+        } else {
+            resetIndicators();
+        }
+    })
+    .catch(err => {
+        console.error(err);
+    });
+}
+
+function drawFaceBoxes(faces) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    faces.forEach(face => {
+        const box = face.box;
+        const x = box.left;
+        const y = box.top;
+        const w = box.right - box.left;
+        const h = box.bottom - box.top;
+        
+        // Define color based on state
+        const isMatched = face.status === 'matched';
+        const color = isMatched ? '#10b981' : '#ef4444'; // Green / Red
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        
+        // Draw corners border only for clean HUD appearance
+        const len = 15;
+        // Top Left
+        ctx.beginPath(); ctx.moveTo(x, y + len); ctx.lineTo(x, y); ctx.lineTo(x + len, y); ctx.stroke();
+        // Top Right
+        ctx.beginPath(); ctx.moveTo(x + w - len, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + len); ctx.stroke();
+        // Bottom Left
+        ctx.beginPath(); ctx.moveTo(x, y + h - len); ctx.lineTo(x, y + h); ctx.lineTo(x + len, y + h); ctx.stroke();
+        // Bottom Right
+        ctx.beginPath(); ctx.moveTo(x + w - len, y + h); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w, y + h - len); ctx.stroke();
+        
+        // Bounding box fill overlay
+        ctx.fillStyle = isMatched ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+        ctx.fillRect(x, y, w, h);
+        
+        // Text details above box
+        ctx.fillStyle = color;
+        ctx.font = '600 13px Outfit, sans-serif';
+        const label = isMatched ? `${face.student.name} (${face.confidence}%)` : "UNKNOWN VISITOR";
+        ctx.fillText(label.toUpperCase(), x + 4, y - 8);
+    });
+}
+
+function updateIndicators(feat) {
+    if (!feat) return;
+    
+    // Blink
+    const statBlink = document.getElementById("statBlink");
+    if (feat.blink_detected) {
+        statBlink.innerHTML = '<span class="text-success"><i class="bi bi-eye-fill me-1"></i>BLINK DETECTED</span>';
+    } else {
+        statBlink.innerHTML = '<span class="text-info"><i class="bi bi-eye me-1"></i>EYES OPEN</span>';
+    }
+    
+    // Smile
+    const statSmile = document.getElementById("statSmile");
+    if (feat.smile_detected) {
+        statSmile.innerHTML = '<span class="text-success"><i class="bi bi-emoji-smile-fill me-1"></i>SMILING</span>';
+    } else {
+        statSmile.innerHTML = '<span class="text-muted"><i class="bi bi-emoji-neutral me-1"></i>NEUTRAL</span>';
+    }
+    
+    // Mask
+    const statMask = document.getElementById("statMask");
+    if (feat.mask_detected) {
+        statMask.innerHTML = '<span class="text-warning"><i class="bi bi-virus2 me-1"></i>MASK DETECTED</span>';
+    } else {
+        statMask.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>NO MASK</span>';
+    }
+    
+    // Emotion
+    const statEmotion = document.getElementById("statEmotion");
+    const clr = feat.emotion === 'happy' ? 'success' : (feat.emotion === 'surprised' ? 'warning' : 'info');
+    statEmotion.innerHTML = `<span class="text-${clr}">${feat.emotion}</span>`;
+}
+
+function speakConfirmation(text) {
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+    }
+}
+
+function handleScanSuccess(student, attendanceMsg, confidence) {
+    const studentKey = `${student.student_id}_${new Date().toDateString()}`;
+    
+    // Play audio feedback and update UI if not logged in this UI session
+    if (!loggedSessionStudents.has(studentKey)) {
+        loggedSessionStudents.add(studentKey);
+        
+        // programmatic audio confirm
+        speakConfirmation(`${student.name}. Checked in.`);
+        
+        // Add record to dynamic side panel
+        const container = document.getElementById("sessionLogsContainer");
+        const placeholder = document.getElementById("noLogsPlaceholder");
+        if (placeholder) placeholder.remove();
+        
+        const card = document.createElement("div");
+        card.className = "d-flex align-items-center justify-content-between p-2 mb-2 rounded-3 border border-secondary border-opacity-10 bg-secondary bg-opacity-10 text-start";
+        card.innerHTML = `
+            <div class="d-flex align-items-center gap-2">
+                <div class="admin-avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                    ${student.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                    <div class="fw-bold text-white mb-0">${student.name}</div>
+                    <small class="text-muted font-monospace">${student.student_id}</small>
+                </div>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-success bg-opacity-20 text-success rounded-pill font-monospace small mb-1 d-block">${attendanceMsg.split(' ')[0]}</span>
+                <small class="text-muted font-monospace" style="font-size: 0.75rem;">${new Date().toLocaleTimeString()}</small>
+            </div>
+        `;
+        
+        // Insert at top of session logs container
+        container.insertBefore(card, container.firstChild);
+        showToast(`Attendance marked for ${student.name}`, "success");
+    }
+}
+
+let lastUnknownAlertTime = 0;
+function handleScanUnknown() {
+    const now = Date.now();
+    // Throttle warnings to once every 10 seconds to avoid spamming
+    if (now - lastUnknownAlertTime > 10000) {
+        lastUnknownAlertTime = now;
+        showToast("Warning: Unknown visitor detected in scan area", "warning");
+        speakConfirmation("Warning. Unknown person detected.");
+    }
+}
+</script>
+{% endblock %}

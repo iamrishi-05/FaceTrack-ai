@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Enroll Face - FaceTrack AI{% endblock %}
+
+{% block header_title %}Biometric Face Registration{% endblock %}
+
+{% block head %}
+<style>
+.progress-ring {
+    transform: rotate(-90deg);
+}
+.progress-ring__circle {
+    transition: stroke-dashoffset 0.35s;
+    transform-origin: 50% 50%;
+}
+.step-item {
+    transition: var(--transition-smooth);
+    opacity: 0.5;
+}
+.step-item.active {
+    opacity: 1;
+    color: var(--color-accent);
+}
+.step-item.completed {
+    opacity: 0.8;
+    color: var(--color-success);
+    text-decoration: line-through;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Camera Terminal (Left) -->
+    <div class="col-lg-7">
+        <div class="glass-card p-4 text-center">
+            <h5 class="fw-bold text-start mb-3"><i class="bi bi-camera-video me-2 accent-color"></i>Live Registration Feed</h5>
+            
+            <div class="scanner-frame-wrapper mb-3">
+                <video id="webcam" class="scanner-video-element" autoplay playsinline></video>
+                <canvas id="overlayCanvas" class="scanner-canvas-element"></canvas>
+                <div class="scan-overlay-active"></div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="d-flex justify-content-between align-items-center gap-3">
+                <select class="form-select form-glass w-auto" id="cameraSelect">
+                    <option value="">Default Camera</option>
+                </select>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-glass px-4" id="startBtn"><i class="bi bi-play-fill me-1"></i>Start Enrollment</button>
+                    <button class="btn btn-glass-secondary px-3" id="pauseBtn" disabled><i class="bi bi-pause-fill"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Guidelines & Progress (Right) -->
+    <div class="col-lg-5">
+        <div class="glass-card p-4 h-100 d-flex flex-column">
+            <h5 class="fw-bold mb-4"><i class="bi bi-person-badge-fill me-2 accent-color"></i>Enrollment Progress</h5>
+            
+            <!-- Student details preview -->
+            <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10">
+                <div class="admin-avatar" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                    {{ student.name[:1].upper() }}
+                </div>
+                <div class="text-start">
+                    <h6 class="fw-bold mb-0 text-white">{{ student.name }}</h6>
+                    <small class="text-muted font-monospace">{{ student.student_id }}</small>
+                </div>
+            </div>
+            
+            <!-- Circular Progress Dashboard -->
+            <div class="text-center my-4">
+                <svg class="progress-ring" width="120" height="120">
+                    <circle class="progress-ring__circle" stroke="var(--glass-border)" stroke-width="8" fill="transparent" r="50" cx="60" cy="60"/>
+                    <circle id="progressBarCircle" class="progress-ring__circle" stroke="var(--color-accent)" stroke-width="8" fill="transparent" r="50" cx="60" cy="60" stroke-linecap="round"/>
+                </svg>
+                <div class="mt-3">
+                    <h2 class="fw-bold mb-0 font-monospace" id="percentText">0%</h2>
+                    <span class="text-muted small" id="framesCountText">0 / 50 frames collected</span>
+                </div>
+            </div>
+            
+            <!-- Guide Steps -->
+            <div class="text-start flex-grow-1 mb-4">
+                <h6 class="fw-bold mb-3 small text-uppercase letter-spacing-1 text-muted">Pose Guidelines</h6>
+                <div class="step-item active mb-2" id="step1">
+                    <i class="bi bi-circle-fill me-2 small"></i>Look directly at the camera (straight)
+                </div>
+                <div class="step-item mb-2" id="step2">
+                    <i class="bi bi-circle-fill me-2 small"></i>Smile naturally
+                </div>
+                <div class="step-item mb-2" id="step3">
+                    <i class="bi bi-circle-fill me-2 small"></i>Turn head slightly left
+                </div>
+                <div class="step-item mb-0" id="step4">
+                    <i class="bi bi-circle-fill me-2 small"></i>Turn head slightly right
+                </div>
+            </div>
+            
+            <!-- Action Console Logger -->
+            <div class="bg-dark bg-opacity-50 border border-secondary border-opacity-10 p-3 rounded-3 text-start">
+                <span class="text-muted small font-monospace d-block mb-1">Registration Logs</span>
+                <div id="statusConsole" class="font-monospace text-glow text-info small" style="min-height: 24px; max-height: 50px; overflow-y: auto;">
+                    Webcam offline. Click Start Enrollment.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let localStream = null;
+let captureInterval = null;
+let collectedCount = 0;
+const targetCount = 50;
+let isEnrolling = false;
+
+const video = document.getElementById("webcam");
+const canvas = document.getElementById("overlayCanvas");
+const ctx = canvas.getContext("2d");
+const statusConsole = document.getElementById("statusConsole");
+const percentText = document.getElementById("percentText");
+const framesCountText = document.getElementById("framesCountText");
+const circle = document.getElementById("progressBarCircle");
+
+// SVG Circle circumference calculation
+const radius = circle.r.baseVal.value;
+const circumference = radius * 2 * Math.PI;
+circle.style.strokeDasharray = `${circumference} ${circumference}`;
+circle.style.strokeDashoffset = circumference;
+
+function setProgress(percent) {
+    const offset = circumference - (percent / 100 * circumference);
+    circle.style.strokeDashoffset = offset;
+    percentText.textContent = `${Math.round(percent)}%`;
+}
+
+// Access Cameras list
+async function getCameras() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const select = document.getElementById("cameraSelect");
+        select.innerHTML = "";
+        devices.forEach(device => {
+            if (device.kind === "videoinput") {
+                const opt = document.createElement("option");
+                opt.value = device.deviceId;
+                opt.textContent = device.label || `Camera ${select.length + 1}`;
+                select.appendChild(opt);
+            }
+        });
+    } catch (err) {
+        console.error("Failed to list cameras", err);
+    }
+}
+
+// Start Video Stream
+async function startWebcam() {
+    const select = document.getElementById("cameraSelect");
+    const constraints = {
+        video: select.value ? { deviceId: { exact: select.value } } : true,
+        audio: false
+    };
+    
+    try {
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+        }
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = localStream;
+        
+        // Wait for video details to load to size the canvas
+        video.onloadedmetadata = () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            writeLog("Webcam stream active. Preparing scan area.");
+        };
+    } catch (err) {
+        writeLog("Error: Camera access denied. " + err.message, "danger");
+        showToast("Webcam initialization failed", "danger");
+    }
+}
+
+function writeLog(msg, type = "info") {
+    statusConsole.innerHTML = `<span class="text-${type}">${msg}</span>`;
+}
+
+// Document load setup
+document.addEventListener("DOMContentLoaded", async () => {
+    await getCameras();
+    
+    document.getElementById("startBtn").addEventListener("click", async () => {
+        if (!localStream) {
+            await startWebcam();
+        }
+        startRegistration();
+    });
+    
+    document.getElementById("pauseBtn").addEventListener("click", () => {
+        pauseRegistration();
+    });
+    
+    document.getElementById("cameraSelect").addEventListener("change", async () => {
+        if (localStream) {
+            await startWebcam();
+        }
+    });
+});
+
+function startRegistration() {
+    isEnrolling = true;
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("pauseBtn").disabled = false;
+    writeLog("Initiating face registration scan...");
+    
+    // Clear previous database records before registering new biometrics
+    fetch("{{ url_for('api.clear_encodings', student_id=student.student_id) }}", { method: 'POST' })
+        .then(() => {
+            collectedCount = 0;
+            setProgress(0);
+            framesCountText.textContent = `0 / ${targetCount} frames collected`;
+            
+            // Loop frame capture every 250ms
+            captureInterval = setInterval(captureFrame, 250);
+        });
+}
+
+function pauseRegistration() {
+    isEnrolling = false;
+    clearInterval(captureInterval);
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("pauseBtn").disabled = true;
+    writeLog("Enrollment paused. Resume when ready.");
+}
+
+function captureFrame() {
+    if (collectedCount >= targetCount) {
+        completeRegistration();
+        return;
+    }
+    
+    // Draw canvas frames
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Extract base64 jpeg
+    const frameData = canvas.toDataURL("image/jpeg", 0.8);
+    
+    // Post to API
+    fetch("{{ url_for('api.register_face_frame', student_id=student.student_id) }}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: frameData })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            collectedCount++;
+            const pct = (collectedCount / targetCount) * 100;
+            setProgress(pct);
+            framesCountText.textContent = `${collectedCount} / ${targetCount} frames collected`;
+            writeLog(`Processing frame ${collectedCount}... OK`, "success");
+            
+            // Update guide steps based on progress
+            updateGuidelines(collectedCount);
+        } else {
+            writeLog(`Alert: ${data.message}`, "warning");
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        writeLog("Network transmission error.", "danger");
+    });
+}
+
+function updateGuidelines(count) {
+    const s1 = document.getElementById("step1");
+    const s2 = document.getElementById("step2");
+    const s3 = document.getElementById("step3");
+    const s4 = document.getElementById("step4");
+    
+    // Reset classes
+    s1.className = s2.className = s3.className = s4.className = "step-item";
+    
+    if (count < 15) {
+        s1.className = "step-item active";
+    } else if (count < 30) {
+        s1.className = "step-item completed";
+        s2.className = "step-item active";
+        writeLog("Step 2: Smile for the camera!", "info");
+    } else if (count < 42) {
+        s1.className = s2.className = "step-item completed";
+        s3.className = "step-item active";
+        writeLog("Step 3: Turn your head slightly left...", "info");
+    } else {
+        s1.className = s2.className = s3.className = "step-item completed";
+        s4.className = "step-item active";
+        writeLog("Step 4: Turn your head slightly right...", "info");
+    }
+}
+
+function completeRegistration() {
+    isEnrolling = false;
+    clearInterval(captureInterval);
+    
+    // Close camera stream
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        localStream = null;
+    }
+    
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("pauseBtn").disabled = true;
+    writeLog("Enrollment complete! Average face vector compiled.", "success");
+    
+    showToast("Face Biometrics Registered Successfully!", "success");
+    
+    // Redirect to profile after 1.5 seconds
+    setTimeout(() => {
+        window.location.href = "{{ url_for('students.profile', student_id=student.student_id) }}";
+    }, 1500);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Register Student - FaceTrack AI{% endblock %}
+
+{% block header_title %}Register New Student{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="glass-card p-4 p-md-5">
+            <div class="d-flex align-items-center justify-content-between mb-4 border-bottom border-secondary border-opacity-10 pb-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-person-fill-add me-2 accent-color"></i>Student Information</h5>
+                <a href="{{ url_for('students.index') }}" class="btn btn-glass-secondary btn-sm py-1"><i class="bi bi-arrow-left me-1"></i>Back to List</a>
+            </div>
+            
+            <form action="{{ url_for('students.register') }}" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                <div class="row g-3">
+                    
+                    <!-- Unique Student ID and Name -->
+                    <div class="col-md-6">
+                        <label for="student_id" class="form-label form-label-glass">Unique Student ID <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-glass font-monospace fw-bold" id="student_id" name="student_id" placeholder="FT-2026-0001" required pattern="^FT-\d{4}-\d{4}$">
+                        <div class="invalid-feedback">Format must be FT-YYYY-XXXX (e.g. FT-2026-0005).</div>
+                        <div class="form-text text-muted small mt-1">Format: FT-[Year]-[4-Digit Number]. <a href="#" onclick="generateStudentID(); return false;" class="accent-color text-glow text-decoration-none">Auto-generate</a></div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="name" class="form-label form-label-glass">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-glass" id="name" name="name" placeholder="Johnathan Doe" required>
+                        <div class="invalid-feedback">Full name is required.</div>
+                    </div>
+                    
+                    <!-- Roll Number and Phone -->
+                    <div class="col-md-6">
+                        <label for="roll_number" class="form-label form-label-glass">Roll Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-glass" id="roll_number" name="roll_number" placeholder="CS-04" required>
+                        <div class="invalid-feedback">Roll number is required.</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="phone" class="form-label form-label-glass">Phone Number</label>
+                        <input type="tel" class="form-control form-glass" id="phone" name="phone" placeholder="9876543210">
+                    </div>
+                    
+                    <!-- Email -->
+                    <div class="col-12">
+                        <label for="email" class="form-label form-label-glass">Email Address <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control form-glass" id="email" name="email" placeholder="john.doe@university.edu" required>
+                        <div class="invalid-feedback">A valid email address is required.</div>
+                    </div>
+                    
+                    <!-- Department and Semester -->
+                    <div class="col-md-6">
+                        <label for="department" class="form-label form-label-glass">Department <span class="text-danger">*</span></label>
+                        <select class="form-select form-glass" id="department" name="department" required>
+                            <option value="" disabled selected>Select Department</option>
+                            <option value="Computer Science">Computer Science & Engineering</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Electronics & Comm">Electronics & Communication</option>
+                            <option value="Electrical Eng">Electrical Engineering</option>
+                            <option value="Mechanical Eng">Mechanical Engineering</option>
+                            <option value="Civil Eng">Civil Engineering</option>
+                            <option value="Business Admin">Business Administration</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a department.</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="semester" class="form-label form-label-glass">Semester <span class="text-danger">*</span></label>
+                        <select class="form-select form-glass" id="semester" name="semester" required>
+                            <option value="" disabled selected>Select Semester</option>
+                            <option value="Semester 1">Semester 1</option>
+                            <option value="Semester 2">Semester 2</option>
+                            <option value="Semester 3">Semester 3</option>
+                            <option value="Semester 4">Semester 4</option>
+                            <option value="Semester 5">Semester 5</option>
+                            <option value="Semester 6">Semester 6</option>
+                            <option value="Semester 7">Semester 7</option>
+                            <option value="Semester 8">Semester 8</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a semester.</div>
+                    </div>
+                    
+                    <!-- Profile Photo File Upload -->
+                    <div class="col-12 mb-3">
+                        <label for="photo" class="form-label form-label-glass">Profile Photo (JPG / PNG)</label>
+                        <input class="form-control form-glass" type="file" id="photo" name="photo" accept=".png, .jpg, .jpeg">
+                        <div class="form-text text-muted small mt-1">This will be shown as their main dashboard profile picture.</div>
+                    </div>
+                    
+                </div>
+
+                <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 d-flex gap-3">
+                    <button type="submit" class="btn btn-glass px-5 py-3"><i class="bi bi-person-plus-fill me-2"></i>Register Student</button>
+                    <a href="{{ url_for('students.index') }}" class="btn btn-glass-secondary px-4 py-3">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-generate student ID helper
+function generateStudentID() {
+    const year = new Date().getFullYear();
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    const input = document.getElementById("student_id");
+    if (input) {
+        input.value = `FT-${year}-${rand}`;
+        input.classList.remove("is-invalid");
+    }
+}
+
+// Bootstrap Form Validation Script
+(function () {
+  'use strict'
+  const forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+})()
+</script>
+{% endblock %}

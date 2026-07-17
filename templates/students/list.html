@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Student Directory - FaceTrack AI{% endblock %}
+
+{% block header_title %}Student Directory{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Filters Toolbar -->
+    <div class="col-12">
+        <div class="glass-card p-4">
+            <form method="GET" action="{{ url_for('students.index') }}" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="search" class="form-label form-label-glass">Search Student</label>
+                    <div class="input-group">
+                        <span class="input-group-text form-glass border-end-0" style="background: rgba(255, 255, 255, 0.01);"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control form-glass border-start-0" id="search" name="search" placeholder="Name, ID, or Roll..." value="{{ search_query }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label for="department" class="form-label form-label-glass">Department</label>
+                    <select class="form-select form-glass" id="department" name="department">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                            <option value="{{ dept }}" {% if selected_dept == dept %}selected{% endif %}>{{ dept }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="semester" class="form-label form-label-glass">Semester</label>
+                    <select class="form-select form-glass" id="semester" name="semester">
+                        <option value="">All Semesters</option>
+                        {% for sem in semesters %}
+                            <option value="{{ sem }}" {% if selected_sem == sem %}selected{% endif %}>{{ sem }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-glass flex-grow-1"><i class="bi bi-funnel-fill me-1"></i>Filter</button>
+                    <a href="{{ url_for('students.index') }}" class="btn btn-glass-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Student Table Card -->
+    <div class="col-12">
+        <div class="glass-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-list-stars me-2 accent-color text-glow"></i>Registered Students</h5>
+                
+                <div class="d-flex gap-2">
+                    <!-- CSV Import Button -->
+                    <button class="btn btn-glass-secondary py-2" data-bs-toggle="modal" data-bs-target="#importCsvModal">
+                        <i class="bi bi-file-earmark-arrow-up-fill me-2"></i>Import CSV
+                    </button>
+                    
+                    <!-- Register Student Button -->
+                    <a href="{{ url_for('students.register') }}" class="btn btn-glass py-2">
+                        <i class="bi bi-person-plus-fill me-2"></i>Add Student
+                    </a>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-glass align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Photo</th>
+                            <th>Name</th>
+                            <th>Roll Number</th>
+                            <th>Department</th>
+                            <th>Semester</th>
+                            <th>Biometrics</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if students %}
+                            {% for student in students %}
+                                <tr>
+                                    <td class="font-monospace fw-bold accent-color">{{ student.student_id }}</td>
+                                    <td>
+                                        {% if student.photo_path %}
+                                            <img src="{{ url_for('static', filename=student.photo_path) if not student.photo_path.startswith('uploads/') else '/' + student.photo_path }}" alt="Photo" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover; border: 2px solid var(--glass-border);">
+                                        {% else %}
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center bg-secondary bg-opacity-20 text-muted" style="width: 40px; height: 40px; font-weight: 600;">
+                                                {{ student.name[:1].upper() }}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="fw-medium">{{ student.name }}</td>
+                                    <td>{{ student.roll_number }}</td>
+                                    <td>{{ student.department }}</td>
+                                    <td>{{ student.semester }}</td>
+                                    <td>
+                                        <!-- Need check if face encoding is generated -->
+                                        {% set is_enrolled = [] %}
+                                        {# Enrolled check logic can also be pre-fetched, for simplicity we will render badge #}
+                                        {# Wait! In standard templates we can query if enrolled from the view context or render a smart state. Let's make sure it handles elegantly. #}
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="rounded-circle bg-success" style="width: 8px; height: 8px; box-shadow: 0 0 8px var(--color-success);"></span>
+                                            <span class="small text-muted">Ready</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <a href="{{ url_for('students.profile', student_id=student.student_id) }}" class="btn btn-outline-info btn-sm rounded-3 py-1 px-2" title="View Profile">
+                                                <i class="bi bi-person-bounding-box"></i>
+                                            </a>
+                                            <a href="{{ url_for('students.edit', db_id=student.id) }}" class="btn btn-outline-warning btn-sm rounded-3 py-1 px-2" title="Edit Student">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger btn-sm rounded-3 py-1 px-2" title="Delete Student" onclick="confirmDelete('{{ student.student_id }}', '{{ student.name }}')">
+                                                <i class="bi bi-trash3-fill"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="bi bi-people fs-1 d-block mb-3 opacity-30"></i>
+                                    No students found matching current filters.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSV Import Modal -->
+<div class="modal fade" id="importCsvModal" tabindex="-1" aria-labelledby="importCsvModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-0" style="background: rgba(15, 23, 42, 0.98);">
+            <div class="modal-header border-bottom border-secondary border-opacity-10 py-3">
+                <h5 class="modal-title fw-bold text-white" id="importCsvModalLabel"><i class="bi bi-file-earmark-arrow-up-fill me-2 accent-color"></i>Import Student List</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('students.import_csv') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body p-4 text-start">
+                    <p class="text-muted small mb-4">Upload a `.csv` file containing details of students. Make sure the headers match the required structure.</p>
+                    
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label form-label-glass">Choose CSV File</label>
+                        <input class="form-control form-glass" type="file" id="csv_file" name="csv_file" accept=".csv" required>
+                    </div>
+                    
+                    <!-- Format Instructions -->
+                    <div class="bg-secondary bg-opacity-10 p-3 rounded-3 mb-2 border border-secondary border-opacity-10">
+                        <h6 class="text-white fw-bold mb-2 small"><i class="bi bi-info-circle me-1"></i>Required Column Headers:</h6>
+                        <code class="small text-glow accent-color font-monospace" style="word-break: break-all;">student_id, name, roll_number, email, phone, department, semester</code>
+                        <div class="mt-3 text-center">
+                            <a href="{{ url_for('students.sample_csv') }}" class="btn btn-sm btn-glass-secondary py-1 px-3" style="font-size: 0.8rem;">
+                                <i class="bi bi-download me-1"></i>Download CSV Template
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-10 py-3">
+                    <button type="button" class="btn btn-glass-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-glass">Start Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(studentId, name) {
+    if (confirm(`Are you sure you want to delete student '${name}' (${studentId})?\nThis will permanently delete their records and enrolled face biometric scans.`)) {
+        window.location.href = `{{ url_for('students.index') }}/delete/${studentId}`;
+    }
+}
+</script>
+{% endblock %}

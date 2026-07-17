@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - FaceTrack AI{% endblock %}
+
+{% block header_title %}System Analytics & Insights{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Line Chart: Weekly Trend (Left) -->
+    <div class="col-lg-8">
+        <div class="glass-card p-4 h-100">
+            <h5 class="fw-bold mb-4"><i class="bi bi-graph-up-arrow me-2 accent-color"></i>Weekly Attendance Trend</h5>
+            <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="weeklyTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pie Chart: Emotion Metrics (Right) -->
+    <div class="col-lg-4">
+        <div class="glass-card p-4 h-100 d-flex flex-column">
+            <h5 class="fw-bold mb-4"><i class="bi bi-emoji-smile me-2 accent-color"></i>Facial Expression Stats</h5>
+            <div class="flex-grow-1 d-flex align-items-center justify-content-center" style="position: relative; min-height: 200px;">
+                <canvas id="emotionChart" style="max-height: 200px; max-width: 200px;"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bar Chart: Department breakdown -->
+    <div class="col-12">
+        <div class="glass-card p-4">
+            <h5 class="fw-bold mb-4"><i class="bi bi-bar-chart-line-fill me-2 accent-color"></i>Department-Wise Distribution (Today)</h5>
+            <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="deptChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Top Performers List -->
+    <div class="col-md-6">
+        <div class="glass-card p-4 h-100">
+            <h5 class="fw-bold mb-4 text-success"><i class="bi bi-star-fill me-2"></i>Highest Attendance Students</h5>
+            <div class="list-group list-group-flush" style="background: transparent;">
+                {% if top_performers %}
+                    {% for item in top_performers %}
+                        <div class="list-group-item bg-transparent border-bottom border-secondary border-opacity-10 px-0 py-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="fw-bold text-white mb-1">{{ item.name }}</h6>
+                                <small class="text-muted">{{ item.department }} | ID: {{ item.student_id }}</small>
+                            </div>
+                            <span class="badge bg-success bg-opacity-20 text-success rounded-pill px-3 py-1 font-monospace">{{ item.attended_classes }} check-ins</span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-muted py-3">No stats accumulated yet.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- At Risk List -->
+    <div class="col-md-6">
+        <div class="glass-card p-4 h-100">
+            <h5 class="fw-bold mb-4 text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>At-Risk / Lowest Attendance</h5>
+            <div class="list-group list-group-flush" style="background: transparent;">
+                {% if at_risk %}
+                    {% for item in at_risk %}
+                        <div class="list-group-item bg-transparent border-bottom border-secondary border-opacity-10 px-0 py-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="fw-bold text-white mb-1">{{ item.name }}</h6>
+                                <small class="text-muted">{{ item.department }} | ID: {{ item.student_id }}</small>
+                            </div>
+                            <span class="badge bg-danger bg-opacity-20 text-danger rounded-pill px-3 py-1 font-monospace">{{ item.attended_classes }} check-ins</span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-muted py-3">No stats accumulated yet.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Server-side JSON Payloads -->
+<script id="weekly-trend-data" type="application/json">{{ weekly_trend | tojson }}</script>
+<script id="emotion-data" type="application/json">{{ emotion_data | tojson }}</script>
+<script id="dept-data" type="application/json">{{ dept_data | tojson }}</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Shared chart style options
+    const gridStyle = {
+        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+        ticks: { color: '#94a3b8', font: { family: 'Outfit' } }
+    };
+
+    // 1. Line Chart: Weekly Trend
+    const weeklyRaw = JSON.parse(document.getElementById('weekly-trend-data').textContent);
+    const labels = weeklyRaw.map(d => d.label);
+    const dataCounts = weeklyRaw.map(d => d.count);
+    
+    new Chart(document.getElementById('weeklyTrendChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Sign-ins',
+                data: dataCounts,
+                borderColor: '#00e5ff',
+                backgroundColor: 'rgba(0, 229, 255, 0.05)',
+                fill: true,
+                tension: 0.3,
+                borderWidth: 3,
+                pointBackgroundColor: '#00e5ff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: gridStyle,
+                y: {
+                    ...gridStyle,
+                    beginAtZero: true,
+                    ticks: { ...gridStyle.ticks, stepSize: 1 }
+                }
+            }
+        }
+    });
+
+    // 2. Pie Chart: Emotion Metrics
+    const emotionRaw = JSON.parse(document.getElementById('emotion-data').textContent);
+    if (emotionRaw.length > 0) {
+        new Chart(document.getElementById('emotionChart').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: emotionRaw.map(e => e.emotion.toUpperCase()),
+                datasets: [{
+                    data: emotionRaw.map(e => e.count),
+                    backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'],
+                    borderColor: 'rgba(255, 255, 255, 0.05)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+    } else {
+        document.getElementById('emotionChart').parentNode.innerHTML = '<span class="text-muted small">Expression data unavailable.</span>';
+    }
+
+    // 3. Bar Chart: Department Distribution
+    const deptRaw = JSON.parse(document.getElementById('dept-data').textContent);
+    new Chart(document.getElementById('deptChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: deptRaw.map(d => d.department),
+            datasets: [{
+                label: 'Present Students',
+                data: deptRaw.map(d => d.count),
+                backgroundColor: 'rgba(99, 102, 241, 0.4)',
+                borderColor: '#6366f1',
+                borderWidth: 2,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: gridStyle,
+                y: {
+                    ...gridStyle,
+                    beginAtZero: true,
+                    ticks: { ...gridStyle.ticks, stepSize: 1 }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

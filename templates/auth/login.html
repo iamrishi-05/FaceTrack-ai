@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - FaceTrack AI{% endblock %}
+
+{% block auth_content %}
+<div class="d-flex align-items-center justify-content-center min-vh-100 px-3">
+    <div class="login-container glass-card p-4 p-md-5 rounded-4 text-center">
+        <!-- Logo Header -->
+        <div class="mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center bg-info bg-opacity-10 p-3 rounded-circle border border-info border-opacity-25 pulse-glow-effect mb-3" style="width: 72px; height: 72px;">
+                <i class="bi bi-camera-reconnection accent-color text-glow fs-1"></i>
+            </div>
+            <h2 class="fw-bold mb-1">FaceTrack AI</h2>
+            <p class="text-muted small">Smart Attendance Management System</p>
+        </div>
+
+        <!-- Login Form -->
+        <form action="{{ url_for('auth.login') }}" method="POST" class="text-start">
+            <div class="mb-3">
+                <label for="username" class="form-label form-label-glass">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text form-glass border-end-0" style="background: rgba(255, 255, 255, 0.01);"><i class="bi bi-person-fill text-muted"></i></span>
+                    <input type="text" class="form-control form-glass border-start-0" id="username" name="username" placeholder="Enter username" required value="admin">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label for="password" class="form-label form-label-glass mb-0">Password</label>
+                    <a href="{{ url_for('auth.forgot_password') }}" class="text-glow accent-color text-decoration-none small">Forgot Password?</a>
+                </div>
+                <div class="input-group">
+                    <span class="input-group-text form-glass border-end-0" style="background: rgba(255, 255, 255, 0.01);"><i class="bi bi-lock-fill text-muted"></i></span>
+                    <input type="password" class="form-control form-glass border-start-0" id="password" name="password" placeholder="Enter password" required value="adminpassword">
+                </div>
+            </div>
+
+            <div class="mb-4 form-check text-start">
+                <input type="checkbox" class="form-check-input form-glass border-0 bg-secondary" id="remember" name="remember" style="width: 18px; height: 18px;">
+                <label class="form-check-label text-muted small ms-2" for="remember" style="padding-top: 2px;">Keep me signed in</label>
+            </div>
+
+            <button type="submit" class="btn btn-glass w-100 py-3">Sign In</button>
+        </form>
+
+        <!-- System Credentials Warning (For Demo Purposes) -->
+        <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 text-center">
+            <div class="badge bg-secondary bg-opacity-20 text-muted px-3 py-2 rounded-pill font-monospace small">
+                Demo User: admin | pwd: adminpassword
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

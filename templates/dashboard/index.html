@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - FaceTrack AI{% endblock %}
+
+{% block header_title %}Analytics Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+    <!-- Total Students Card -->
+    <div class="col-xl-3 col-sm-6">
+        <div class="glass-card p-4 d-flex align-items-center justify-content-between" style="border-left: 4px solid var(--color-info);">
+            <div>
+                <span class="text-muted small d-block mb-1">Total Enrolled</span>
+                <h2 class="fw-bold mb-0 text-white">{{ total_students }}</h2>
+            </div>
+            <div class="fs-1 text-info opacity-80"><i class="bi bi-people-fill"></i></div>
+        </div>
+    </div>
+    
+    <!-- Present Today -->
+    <div class="col-xl-3 col-sm-6">
+        <div class="glass-card p-4 d-flex align-items-center justify-content-between" style="border-left: 4px solid var(--color-success);">
+            <div>
+                <span class="text-muted small d-block mb-1">Present Today</span>
+                <h2 class="fw-bold mb-0 text-success">{{ present_today }}</h2>
+            </div>
+            <div class="fs-1 text-success opacity-80"><i class="bi bi-person-check-fill"></i></div>
+        </div>
+    </div>
+    
+    <!-- Absent Today -->
+    <div class="col-xl-3 col-sm-6">
+        <div class="glass-card p-4 d-flex align-items-center justify-content-between" style="border-left: 4px solid var(--color-danger);">
+            <div>
+                <span class="text-muted small d-block mb-1">Absent Today</span>
+                <h2 class="fw-bold mb-0 text-danger">{{ absent_today }}</h2>
+            </div>
+            <div class="fs-1 text-danger opacity-80"><i class="bi bi-person-x-fill"></i></div>
+        </div>
+    </div>
+    
+    <!-- Attendance Percentage -->
+    <div class="col-xl-3 col-sm-6">
+        <div class="glass-card p-4 d-flex align-items-center justify-content-between" style="border-left: 4px solid var(--color-warning);">
+            <div>
+                <span class="text-muted small d-block mb-1">Attendance Rate</span>
+                <h2 class="fw-bold mb-0 text-warning">{{ attendance_percentage }}%</h2>
+            </div>
+            <div class="fs-1 text-warning opacity-80"><i class="bi bi-pie-chart-fill"></i></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Chart Overview (Left) -->
+    <div class="col-xl-5 col-lg-6">
+        <div class="glass-card p-4 h-100 d-flex flex-column">
+            <h5 class="fw-bold mb-4"><i class="bi bi-donut-chart me-2 accent-color"></i>Today's Attendance Ratio</h5>
+            <div class="flex-grow-1 d-flex align-items-center justify-content-center" style="position: relative; min-height: 220px;">
+                <canvas id="todayRatioChart" style="max-width: 220px; max-height: 220px;"></canvas>
+            </div>
+            <div class="mt-4 text-center">
+                <a href="{{ url_for('attendance.scanner') }}" class="btn btn-glass w-100 py-3 pulse-glow-effect">
+                    <i class="bi bi-qr-code-scan me-2"></i>Open Face Scanner Terminal
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Logs & Warnings Panel (Right) -->
+    <div class="col-xl-7 col-lg-6 d-flex flex-column gap-4">
+        <!-- Recent Sign-ins -->
+        <div class="glass-card p-4 flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 accent-color"></i>Recent Check-ins</h5>
+                <a href="{{ url_for('attendance.history') }}" class="text-glow accent-color text-decoration-none small">View Logs</a>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-glass align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if recent_logs %}
+                            {% for log in recent_logs %}
+                                <tr>
+                                    <td class="fw-medium text-white">{{ log.name }} <span class="small text-muted font-monospace d-block" style="font-size: 0.7rem;">Roll: {{ log.roll_number }}</span></td>
+                                    <td class="font-monospace">{{ log.time }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if log.status == 'Present' %}success{% else %}warning{% endif %} bg-opacity-20 text-{% if log.status == 'Present' %}success{% else %}warning{% endif %} rounded-pill px-3 py-1 small">
+                                            {{ log.status }}
+                                        </span>
+                                    </td>
+                                    <td class="font-monospace text-glow accent-color">{{ log.confidence }}%</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    No scans logged today yet.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- System Alerts/Warnings -->
+        <div class="glass-card p-4">
+            <h5 class="fw-bold mb-3 text-warning"><i class="bi bi-shield-fill-exclamation me-2"></i>Security & System Logs</h5>
+            
+            <div class="list-group list-group-flush" style="background: transparent;">
+                {% if warnings %}
+                    {% for warn in warnings %}
+                        <div class="list-group-item bg-transparent border-0 px-0 py-2 d-flex gap-3 align-items-start text-start">
+                            <span class="badge bg-{% if warn.log_level == 'ERROR' %}danger{% else %}warning{% endif %} bg-opacity-20 text-{% if warn.log_level == 'ERROR' %}danger{% else %}warning{% endif %} px-2 py-1 rounded-pill small font-monospace" style="font-size: 0.7rem;">{{ warn.log_level }}</span>
+                            <div>
+                                <p class="mb-0 text-white small">{{ warn.message }}</p>
+                                <small class="text-muted font-monospace" style="font-size: 0.7rem;">{{ warn.timestamp }}</small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-muted small py-2">
+                        <i class="bi bi-shield-check text-success me-1"></i>No security alerts or warnings compiled.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Render Donut Chart
+    const ctx = document.getElementById('todayRatioChart').getContext('2d');
+    
+    // Check values from server context
+    const presentVal = parseInt("{{ donut_data.present }}") || 0;
+    const absentVal = parseInt("{{ donut_data.absent }}") || 0;
+    
+    // If no students enrolled, show blank state
+    if (presentVal === 0 && absentVal === 0) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['No Data'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['rgba(255, 255, 255, 0.05)'],
+                    borderWidth: 0
+                }]
+            },
+            options: { cutout: '80%', plugins: { legend: { display: false } } }
+        });
+        return;
+    }
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Present Today', 'Absent Today'],
+            datasets: [{
+                data: [presentVal, absentVal],
+                backgroundColor: [
+                    '#10b981',  // Green (Present)
+                    '#ef4444'   // Red (Absent)
+                ],
+                borderColor: 'rgba(255, 255, 255, 0.05)',
+                borderWidth: 2,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            cutout: '75%',
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+});
+</script>
+{% endblock %}
