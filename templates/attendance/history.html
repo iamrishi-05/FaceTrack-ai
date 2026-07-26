@@ -40,9 +40,18 @@
     <div class="col-12">
         <div class="glass-card p-4">
             <form method="GET" action="{{ url_for('attendance.history') }}" class="row g-3 align-items-end">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="date" class="form-label form-label-glass">Date</label>
                     <input type="date" class="form-control form-glass" id="date" name="date" value="{{ selected_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="subject" class="form-label form-label-glass">Subject / Lecture</label>
+                    <select class="form-select form-glass" id="subject" name="subject">
+                        <option value="">All Lectures</option>
+                        {% for sub in subjects %}
+                            <option value="{{ sub }}" {% if selected_subject == sub %}selected{% endif %}>{{ sub }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="col-md-3">
                     <label for="department" class="form-label form-label-glass">Department</label>
@@ -61,10 +70,6 @@
                         <option value="Late" {% if selected_status == 'Late' %}selected{% endif %}>Late</option>
                         <option value="Absent" {% if selected_status == 'Absent' %}selected{% endif %}>Absent</option>
                     </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="search" class="form-label form-label-glass">Search Student</label>
-                    <input type="text" class="form-control form-glass" id="search" name="search" placeholder="Name or ID..." value="{{ search_query }}">
                 </div>
                 <div class="col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-glass flex-grow-1"><i class="bi bi-search me-1"></i>Search</button>
@@ -85,11 +90,12 @@
                         <tr>
                             <th>Student ID</th>
                             <th>Student Details</th>
+                            <th>Subject / Lecture</th>
                             <th>Check-in Status</th>
                             <th>Check-in Time</th>
                             <th>Confidence</th>
-                            <th>Emotion Detection</th>
-                            <th>Verification Type</th>
+                            <th>Emotion</th>
+                            <th>Type</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -111,6 +117,11 @@
                                                 <small class="text-muted" style="font-size: 0.75rem;">Roll: {{ record.roll_number }} | {{ record.department }}</small>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary bg-opacity-20 text-glow accent-color px-2 py-1 rounded-pill">
+                                            {{ record.subject or 'Python' }}
+                                        </span>
                                     </td>
                                     <td>
                                         {% if record.status == 'Present' %}
@@ -140,7 +151,7 @@
                                     </td>
                                     <td>
                                         {% if record.method == 'Face' %}
-                                            <span class="badge bg-info bg-opacity-10 text-glow accent-color border border-info border-opacity-10 px-2 py-1"><i class="bi bi-camera-reconnection me-1"></i>FaceScan</span>
+                                            <span class="badge bg-info bg-opacity-10 text-glow accent-color border border-info border-opacity-10 px-2 py-1"><i class="bi bi-camera-reconnection me-1"></i>Face</span>
                                         {% else %}
                                             <span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary border-opacity-10 px-2 py-1"><i class="bi bi-pencil-square me-1"></i>Manual</span>
                                         {% endif %}
@@ -149,9 +160,9 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
+                                <td colspan="8" class="text-center py-5 text-muted">
                                     <i class="bi bi-clipboard-x fs-1 d-block mb-3 opacity-30"></i>
-                                    No attendance registers logged for this date.
+                                    No attendance registers logged matching current filters.
                                 </td>
                             </tr>
                         {% endif %}

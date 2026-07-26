@@ -75,6 +75,7 @@ def init_db():
                 student_id TEXT NOT NULL,
                 date TEXT NOT NULL,
                 time TEXT NOT NULL,
+                subject TEXT DEFAULT 'Python',
                 status TEXT NOT NULL,
                 method TEXT DEFAULT 'Face',
                 confidence REAL,
@@ -84,10 +85,16 @@ def init_db():
                 mask_detected INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(student_id) REFERENCES students(student_id) ON DELETE CASCADE,
-                UNIQUE(student_id, date)
+                UNIQUE(student_id, date, subject)
             )
         ''')
         
+        # Ensure subject column exists if database was created prior
+        cursor.execute("PRAGMA table_info(attendance)")
+        columns = [column[1] for column in cursor.fetchall()]
+        if 'subject' not in columns:
+            cursor.execute("ALTER TABLE attendance ADD COLUMN subject TEXT DEFAULT 'Python'")
+
         # 5. System Logs Table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS system_logs (

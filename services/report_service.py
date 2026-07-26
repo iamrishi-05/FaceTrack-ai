@@ -22,7 +22,7 @@ class ReportService:
                 'Name': r['name'],
                 'Roll Number': r['roll_number'],
                 'Department': r['department'],
-                'Semester': r['semester'],
+                'Subject': r['subject'] if 'subject' in r.keys() and r['subject'] else 'Python',
                 'Check-in Date': r['date'],
                 'Check-in Time': r['time'],
                 'Status': r['status'],
@@ -101,11 +101,11 @@ class ReportService:
         )
 
         # 2. Build logs table
-        # Table columns: ID, Name, Roll, Dept, Date, Time, Status
+        # Table columns: ID, Name, Subject, Dept, Date, Time, Status
         table_data = [[
             Paragraph("Student ID", header_style),
             Paragraph("Name", header_style),
-            Paragraph("Roll", header_style),
+            Paragraph("Subject", header_style),
             Paragraph("Department", header_style),
             Paragraph("Date", header_style),
             Paragraph("Time", header_style),
@@ -113,11 +113,12 @@ class ReportService:
         ]]
         
         for r in records:
+            subject_val = r['subject'] if 'subject' in r.keys() and r['subject'] else 'Python'
             # Wrap in Paragraphs to support auto word-wrapping in ReportLab cells
             table_data.append([
                 Paragraph(r['student_id'], styles['Normal']),
                 Paragraph(r['name'], styles['Normal']),
-                Paragraph(r['roll_number'], styles['Normal']),
+                Paragraph(subject_val, styles['Normal']),
                 Paragraph(r['department'], styles['Normal']),
                 Paragraph(r['date'], styles['Normal']),
                 Paragraph(r['time'], styles['Normal']),
@@ -125,9 +126,9 @@ class ReportService:
             ])
             
         # Table formatting configurations
-        # Letter width = 612. Margins = 36 * 2. Printable width = 540
-        # Columns widths: ID(85), Name(105), Roll(45), Dept(115), Date(65), Time(60), Status(65) = 540
-        col_widths = [85, 105, 45, 115, 65, 60, 65]
+        # Printable width = 540
+        # Columns widths: ID(75), Name(95), Subject(85), Dept(95), Date(65), Time(60), Status(65) = 540
+        col_widths = [75, 95, 85, 95, 65, 60, 65]
         
         t = Table(table_data, colWidths=col_widths, repeatRows=1)
         

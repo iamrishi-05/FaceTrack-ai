@@ -18,6 +18,7 @@ def history():
     # Filters parameters
     date_filter = request.args.get('date', datetime.now().strftime('%Y-%m-%d')).strip()
     status_filter = request.args.get('status', '').strip()
+    subject_filter = request.args.get('subject', '').strip()
     dept_filter = request.args.get('department', '').strip()
     search_query = request.args.get('search', '').strip()
     
@@ -26,7 +27,7 @@ def history():
         
         # Build SQL query dynamically
         query = '''
-            SELECT a.id, a.student_id, a.date, a.time, a.status, a.method, a.confidence, a.emotion, 
+            SELECT a.id, a.student_id, a.date, a.time, a.subject, a.status, a.method, a.confidence, a.emotion, 
                    s.name, s.roll_number, s.department, s.semester, s.photo_path
             FROM attendance a
             INNER JOIN students s ON a.student_id = s.student_id
@@ -41,6 +42,10 @@ def history():
         if status_filter:
             query += " AND a.status = ?"
             params.append(status_filter)
+
+        if subject_filter:
+            query += " AND a.subject = ?"
+            params.append(subject_filter)
             
         if dept_filter:
             query += " AND s.department = ?"
@@ -56,7 +61,7 @@ def history():
         records = cursor.fetchall()
         
         # Fetch stats for summary headers on history view
-        cursor.execute('''
+        stats_query = '''
             SELECT 
                 COUNT(*) as total,
                 SUM(CASE WHEN status='Present' THEN 1 ELSE 0 END) as present,
@@ -64,19 +69,29 @@ def history():
                 SUM(CASE WHEN status='Absent' THEN 1 ELSE 0 END) as absent
             FROM attendance
             WHERE date = ?
-        ''', (date_filter,))
+        '''
+        stats_params = [date_filter]
+        if subject_filter:
+            stats_query += " AND subject = ?"
+            stats_params.append(subject_filter)
+
+        cursor.execute(stats_query, stats_params)
         daily_stats = cursor.fetchone()
         
         # Load unique values for dropdowns
         cursor.execute("SELECT DISTINCT department FROM students WHERE department IS NOT NULL")
         departments = [row['department'] for row in cursor.fetchall()]
         
+        subjects = ['Python', 'Software Engineering', 'Java']
+        
     return render_template(
         'attendance/history.html',
         records=records,
         departments=departments,
+        subjects=subjects,
         selected_date=date_filter,
         selected_status=status_filter,
+        selected_subject=subject_filter,
         selected_dept=dept_filter,
         search_query=search_query,
         stats=daily_stats,

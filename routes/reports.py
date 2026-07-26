@@ -17,6 +17,12 @@ def index():
         cursor.execute("SELECT DISTINCT department FROM students WHERE department IS NOT NULL")
         departments = [row['department'] for row in cursor.fetchall()]
         
+        # Load distinct subjects from database to support filtering
+        cursor.execute("SELECT DISTINCT subject FROM attendance WHERE subject IS NOT NULL")
+        db_subjects = [row['subject'] for row in cursor.fetchall()]
+        
+    default_subjects = ['Python', 'Software Engineering', 'Java']
+    subjects = sorted(list(set(default_subjects + db_subjects)))
     students = get_all_students()
     
     if request.method == 'POST':
@@ -27,6 +33,7 @@ def index():
         department = request.form.get('department', '').strip()
         student_id = request.form.get('student_id', '').strip()
         status = request.form.get('status', '').strip()
+        subject = request.form.get('subject', '').strip()
         
         # Date defaults (Today)
         today_str = datetime.now().strftime('%Y-%m-%d')
@@ -35,7 +42,7 @@ def index():
         
         # Build Query
         query = '''
-            SELECT a.student_id, a.date, a.time, a.status, a.method, a.confidence, a.emotion,
+            SELECT a.student_id, a.date, a.time, a.subject, a.status, a.method, a.confidence, a.emotion,
                    s.name, s.roll_number, s.department, s.semester
             FROM attendance a
             INNER JOIN students s ON a.student_id = s.student_id
@@ -59,6 +66,11 @@ def index():
             query += " AND a.status = ?"
             params.append(status)
             filter_desc += f" | Status: {status}"
+
+        if subject:
+            query += " AND a.subject = ?"
+            params.append(subject)
+            filter_desc += f" | Lecture: {subject}"
             
         query += " ORDER BY a.date ASC, a.time ASC"
         
@@ -91,6 +103,7 @@ def index():
     return render_template(
         'reports/index.html',
         departments=departments,
+        subjects=subjects,
         students=students,
         active_page='reports'
     )

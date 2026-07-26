@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from werkzeug.utils import secure_filename
 from models.student import (
     get_all_students, get_student_by_id, get_student_by_student_id,
-    add_student, update_student, delete_student, bulk_insert_students
+    add_student, update_student, delete_student, delete_all_students, bulk_insert_students
 )
 from utils.decorators import login_required
 from utils.logger import log_event
@@ -134,6 +134,14 @@ def delete(student_id):
         flash(msg, "success")
     else:
         flash(msg, "error")
+@students_bp.route('/students/delete-all', methods=['POST'])
+@login_required
+def delete_all():
+    success, msg = delete_all_students()
+    if success:
+        flash(msg, "success")
+    else:
+        flash(msg, "error")
     return redirect(url_for('students.index'))
 
 @students_bp.route('/students/profile/<student_id>')
@@ -160,7 +168,7 @@ def profile(student_id):
         late_count = cursor.fetchone()['count']
         
         # Recent logs
-        cursor.execute("SELECT date, time, status, method, confidence, emotion FROM attendance WHERE student_id = ? ORDER BY date DESC, time DESC LIMIT 10", (student_id,))
+        cursor.execute("SELECT date, time, subject, status, method, confidence, emotion FROM attendance WHERE student_id = ? ORDER BY date DESC, time DESC LIMIT 10", (student_id,))
         recent_attendance = cursor.fetchall()
         
     total_classes = present_count + absent_count + late_count

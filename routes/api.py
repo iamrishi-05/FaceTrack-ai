@@ -137,8 +137,10 @@ def recognize_attendance():
             confidence = 0.0
             
         if match_found and confidence >= confidence_threshold:
+            # Extract subject if provided by scanner client
+            requested_subject = data.get('subject')
             # Mark attendance and get student details
-            attendance_status, student_info = process_attendance_mark(matched_id, confidence, analysis)
+            attendance_status, student_info = process_attendance_mark(matched_id, confidence, analysis, subject=requested_subject)
             results.append({
                 'status': 'matched',
                 'box': {'top': loc[0], 'right': loc[1], 'bottom': loc[2], 'left': loc[3]},
@@ -171,15 +173,44 @@ def clear_encodings(student_id):
         log_event("ERROR", "Biometrics", f"Failed to clear biometrics: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-def process_attendance_mark(student_id, confidence, analysis):
+def get_current_scheduled_lecture(now_dt=None):
     """
-    Saves an attendance log entry. Checks limits and prevents duplicates.
+    Returns the scheduled lecture based on current time:
+    - 09:30 - 10:30: Python
+    - 10:30 - 11:30: Software Engineering
+    - 11:30 - 12:30: Java
+    """
+    if now_dt is None:
+        now_dt = datetime.now()
+    t = now_dt.time()
+    t_9_30 = datetime.strptime('09:30:00', '%H:%M:%S').time()
+    t_10_30 = datetime.strptime('10:30:00', '%H:%M:%S').time()
+    t_11_30 = datetime.strptime('11:30:00', '%H:%M:%S').time()
+    t_12_30 = datetime.strptime('12:30:00', '%H:%M:%S').time()
+
+    if t_9_30 <= t < t_10_30:
+        return 'Python'
+    elif t_10_30 <= t < t_11_30:
+        return 'Software Engineering'
+    elif t_11_30 <= t < t_12_30:
+        return 'Java'
+    else:
+        return 'Python' # Default fallback
+
+def process_attendance_mark(student_id, confidence, analysis, subject=None):
+    """
+    Saves an attendance log entry for a specific lecture subject.
+    Checks limits and prevents duplicate check-ins for the same subject today.
     Returns (status_type, student_details).
     """
     now = datetime.now()
     date_str = now.strftime('%Y-%m-%d')
     time_str = now.strftime('%H:%M:%S')
-    
+
+    # Resolve active subject
+    if not subject or subject == 'Auto':
+        subject = get_current_scheduled_lecture(now)
+        
     student = get_student_by_student_id(student_id)
     if not student:
         return 'error', None
@@ -189,31 +220,35 @@ def process_attendance_mark(student_id, confidence, analysis):
         'name': student['name'],
         'roll_number': student['roll_number'],
         'department': student['department'],
-        'photo_path': student['photo_path']
+        'photo_path': student['photo_path'],
+        'subject': subject
     }
 
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
             
-            # Check for duplicate check-in today
-            cursor.execute("SELECT id, time FROM attendance WHERE student_id = ? AND date = ?", (student_id, date_str))
+            # Check for duplicate check-in today for this specific lecture subject
+            cursor.execute(
+                "SELECT id, time FROM attendance WHERE student_id = ? AND date = ? AND subject = ?", 
+                (student_id, date_str, subject)
+            )
             existing = cursor.fetchone()
             if existing:
-                return f"Already marked present today at {existing['time']}", student_info
+                return f"Already marked for {subject} today at {existing['time']}", student_info
 
-            # Check late arrival bounds
-            cursor.execute("SELECT value FROM settings WHERE key='attendance_start'")
-            start_setting = cursor.fetchone()
-            start_limit = start_setting['value'] if start_setting else "09:00"
+            # Lecture start times
+            lecture_starts = {
+                'Python': '09:30',
+                'Software Engineering': '10:30',
+                'Java': '11:30'
+            }
+            start_limit = lecture_starts.get(subject, '09:30')
             
-            # Determine status based on checkin time
-            # For demo, if check-in time is later than start_limit + 15 mins (e.g. 09:15), set to Late, else Present.
-            # We can simplify: if hour > start hour, or hour == start hour and mins > 15, mark 'Late'
+            # Determine status based on checkin time (15 mins grace period)
             status = 'Present'
             try:
                 limit_hr, limit_min = map(int, start_limit.split(':'))
-                # We can buffer 15 minutes late allowance
                 limit_min += 15
                 if limit_min >= 60:
                     limit_hr += 1
@@ -228,21 +263,21 @@ def process_attendance_mark(student_id, confidence, analysis):
                 
             cursor.execute('''
                 INSERT INTO attendance (
-                    student_id, date, time, status, method, confidence, 
+                    student_id, date, time, subject, status, method, confidence, 
                     emotion, smile_detected, blink_detected, mask_detected
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
-                student_id, date_str, time_str, status, 'Face', confidence,
+                student_id, date_str, time_str, subject, status, 'Face', confidence,
                 analysis.get('emotion', 'neutral'),
                 1 if analysis.get('smile_detected') else 0,
                 1 if analysis.get('blink_detected') else 0,
                 1 if analysis.get('mask_detected') else 0
             ))
             
-        log_event("INFO", "Attendance", f"Marked {status} for student {student['name']} ({student_id}) via face recognition.")
-        return f"{status} marked successfully", student_info
+        log_event("INFO", "Attendance", f"Marked {status} for {student['name']} ({student_id}) in lecture '{subject}'.")
+        return f"{status} marked for {subject}", student_info
         
     except Exception as e:
-        log_event("ERROR", "Attendance", f"Failed to mark attendance for {student_id}: {str(e)}")
+        log_event("ERROR", "Attendance", f"Failed to mark attendance for {student_id} in {subject}: {str(e)}")
         return "Database logging failed", student_info

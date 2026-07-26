@@ -161,9 +161,21 @@ async function getCameras() {
 
 // Start Video Stream
 async function startWebcam() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const httpsUrl = 'https://' + window.location.host + window.location.pathname;
+        if (window.location.protocol !== 'https:') {
+            alert("Mobile browsers require HTTPS for camera access!\n\nPlease open this link on your phone:\n" + httpsUrl);
+            window.location.href = httpsUrl;
+            return;
+        } else {
+            writeLog("Error: Camera API not supported in browser", "danger");
+            return;
+        }
+    }
+
     const select = document.getElementById("cameraSelect");
     const constraints = {
-        video: select.value ? { deviceId: { exact: select.value } } : true,
+        video: select.value ? { deviceId: { exact: select.value } } : { facingMode: "user" },
         audio: false
     };
     
@@ -181,8 +193,14 @@ async function startWebcam() {
             writeLog("Webcam stream active. Preparing scan area.");
         };
     } catch (err) {
-        writeLog("Error: Camera access denied. " + err.message, "danger");
-        showToast("Webcam initialization failed", "danger");
+        if (window.location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            const httpsUrl = 'https://' + window.location.host + window.location.pathname;
+            alert("Mobile browser blocked HTTP camera!\n\nRedirecting to HTTPS:\n" + httpsUrl);
+            window.location.href = httpsUrl;
+        } else {
+            writeLog("Error: Camera access denied. " + err.message, "danger");
+            showToast("Webcam initialization failed", "danger");
+        }
     }
 }
 

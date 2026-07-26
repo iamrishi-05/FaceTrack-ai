@@ -54,5 +54,9 @@ def server_error(e):
 # 5. Boot Application
 if __name__ == '__main__':
     log_event("INFO", "System", "FaceTrack AI application booted successfully.")
+    ssl_ctx = None
+    if os.path.exists('cert.pem') and os.path.exists('key.pem'):
+        ssl_ctx = ('cert.pem', 'key.pem')
+        log_event("INFO", "System", "HTTPS SSL context enabled for mobile browser camera support.")
     # Run on all network interfaces to allow local network connections
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True, ssl_context=ssl_ctx)

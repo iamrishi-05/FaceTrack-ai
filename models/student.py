@@ -1,6 +1,9 @@
 import sqlite3
 import re
+import os
+import shutil
 from datetime import datetime
+from config import Config
 from models.db import get_db_connection
 from utils.logger import log_event
 
@@ -176,3 +179,32 @@ def bulk_insert_students(students_list):
             log_event("INFO", "StudentManagement", f"Bulk imported {inserted} students.")
             
     return inserted, errors
+
+def delete_all_students():
+    """
+    Deletes all students and associated records (face encodings, attendance) from the database,
+    and cleans up upload and dataset folders.
+    Returns (success, message).
+    """
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM attendance")
+            cursor.execute("DELETE FROM face_encodings")
+            cursor.execute("DELETE FROM students")
+            
+        # Clean up files in uploads and dataset folders
+        for folder in [Config.UPLOAD_FOLDER, Config.DATASET_FOLDER]:
+            if os.path.exists(folder):
+                for item in os.listdir(folder):
+                    item_path = os.path.join(folder, item)
+                    if os.path.isfile(item_path) or os.path.islink(item_path):
+                        os.unlink(item_path)
+                    elif os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                        
+        log_event("WARNING", "StudentManagement", "All student data, encodings, and attendance logs deleted.")
+        return True, "All student data cleared successfully."
+    except Exception as e:
+        log_event("ERROR", "StudentManagement", f"Failed to delete all student data: {str(e)}")
+        return False, f"Error clearing student data: {str(e)}"

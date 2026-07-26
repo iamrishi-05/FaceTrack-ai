@@ -30,12 +30,22 @@
             </div>
             
             <!-- Controls -->
-            <div class="d-flex justify-content-between align-items-center gap-3">
-                <select class="form-select form-glass w-auto" id="cameraSelect">
-                    <option value="">Default Camera</option>
-                </select>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-glass px-4" id="toggleScanBtn"><i class="bi bi-camera-fill me-1"></i>Start Scanner</button>
+            <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                <div class="d-flex align-items-center gap-2">
+                    <label for="lectureSelect" class="form-label form-label-glass mb-0 small text-nowrap"><i class="bi bi-journal-bookmark-fill me-1 accent-color"></i>Lecture:</label>
+                    <select class="form-select form-glass w-auto py-1" id="lectureSelect" title="Select scheduled lecture class">
+                        <option value="Auto" selected>⏰ Auto-Detect Schedule</option>
+                        <option value="Python">🐍 Python (09:30 - 10:30)</option>
+                        <option value="Software Engineering">⚙️ Software Engineering (10:30 - 11:30)</option>
+                        <option value="Java">☕ Java (11:30 - 12:30)</option>
+                    </select>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <select class="form-select form-glass w-auto py-1" id="cameraSelect">
+                        <option value="">Default Camera</option>
+                    </select>
+                    <button class="btn btn-glass px-4 py-1" id="toggleScanBtn"><i class="bi bi-camera-fill me-1"></i>Start Scanner</button>
                 </div>
             </div>
         </div>
@@ -124,9 +134,21 @@ async function getCameras() {
 
 // Start Stream
 async function startWebcam() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const httpsUrl = 'https://' + window.location.host + window.location.pathname;
+        if (window.location.protocol !== 'https:') {
+            alert("Mobile browsers require HTTPS for camera access!\n\nPlease open this link on your phone:\n" + httpsUrl);
+            window.location.href = httpsUrl;
+            return;
+        } else {
+            showToast("Camera access API is not supported in this browser.", "danger");
+            return;
+        }
+    }
+
     const select = document.getElementById("cameraSelect");
     const constraints = {
-        video: select.value ? { deviceId: { exact: select.value } } : true,
+        video: select.value ? { deviceId: { exact: select.value } } : { facingMode: "user" },
         audio: false
     };
     
@@ -143,7 +165,13 @@ async function startWebcam() {
         };
     } catch (err) {
         console.error("Camera access failed", err);
-        showToast("Webcam initialization failed", "danger");
+        if (window.location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            const httpsUrl = 'https://' + window.location.host + window.location.pathname;
+            alert("Mobile browser blocked HTTP camera!\n\nRedirecting to HTTPS:\n" + httpsUrl);
+            window.location.href = httpsUrl;
+        } else {
+            showToast("Camera initialization failed: " + err.message, "danger");
+        }
     }
 }
 
@@ -177,7 +205,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 function startScanner() {
     isScanning = true;
     toggleScanBtn.innerHTML = '<i class="bi bi-camera-video-off-fill me-1"></i>Stop Scanner';
-    toggleScanBtn.className = "btn btn-glass-secondary px-4";
+    toggleScanBtn.className = "btn btn-glass-secondary px-4 py-1";
     showToast("Face scanner initialized", "info");
     
     // Poll recognizer every 400ms
@@ -188,7 +216,7 @@ function stopScanner() {
     isScanning = false;
     clearInterval(recognitionLoop);
     toggleScanBtn.innerHTML = '<i class="bi bi-camera-fill me-1"></i>Start Scanner';
-    toggleScanBtn.className = "btn btn-glass px-4";
+    toggleScanBtn.className = "btn btn-glass px-4 py-1";
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     resetIndicators();
 }
@@ -206,6 +234,7 @@ function processFrame() {
     // Draw current frame to canvas
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const frameData = canvas.toDataURL("image/jpeg", 0.7);
+    const selectedSubject = document.getElementById("lectureSelect").value;
     
     // Clear canvas prior to drawing bounding boxes
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -213,7 +242,7 @@ function processFrame() {
     fetch("{{ url_for('api.recognize_attendance') }}", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: frameData })
+        body: JSON.stringify({ image: frameData, subject: selectedSubject })
     })
     .then(res => res.json())
     .then(data => {
@@ -270,11 +299,15 @@ function drawFaceBoxes(faces) {
         ctx.fillStyle = isMatched ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
         ctx.fillRect(x, y, w, h);
         
-        // Text details above box
+        // Text details above box - flipped horizontally to cancel out CSS scaleX(-1) mirror effect
+        ctx.save();
         ctx.fillStyle = color;
         ctx.font = '600 13px Outfit, sans-serif';
-        const label = isMatched ? `${face.student.name} (${face.confidence}%)` : "UNKNOWN VISITOR";
-        ctx.fillText(label.toUpperCase(), x + 4, y - 8);
+        const label = isMatched ? `${face.student.name} [${face.student.subject}] (${face.confidence}%)` : "UNKNOWN VISITOR";
+        ctx.translate(x + w - 4, y - 8);
+        ctx.scale(-1, 1);
+        ctx.fillText(label.toUpperCase(), 0, 0);
+        ctx.restore();
     });
 }
 
@@ -321,14 +354,14 @@ function speakConfirmation(text) {
 }
 
 function handleScanSuccess(student, attendanceMsg, confidence) {
-    const studentKey = `${student.student_id}_${new Date().toDateString()}`;
+    const studentKey = `${student.student_id}_${student.subject}_${new Date().toDateString()}`;
     
     // Play audio feedback and update UI if not logged in this UI session
     if (!loggedSessionStudents.has(studentKey)) {
         loggedSessionStudents.add(studentKey);
         
         // programmatic audio confirm
-        speakConfirmation(`${student.name}. Checked in.`);
+        speakConfirmation(`${student.name}. ${student.subject} checked in.`);
         
         // Add record to dynamic side panel
         const container = document.getElementById("sessionLogsContainer");
@@ -344,7 +377,7 @@ function handleScanSuccess(student, attendanceMsg, confidence) {
                 </div>
                 <div>
                     <div class="fw-bold text-white mb-0">${student.name}</div>
-                    <small class="text-muted font-monospace">${student.student_id}</small>
+                    <small class="text-muted font-monospace">${student.student_id} • <span class="accent-color">${student.subject}</span></small>
                 </div>
             </div>
             <div class="text-end">
@@ -355,7 +388,7 @@ function handleScanSuccess(student, attendanceMsg, confidence) {
         
         // Insert at top of session logs container
         container.insertBefore(card, container.firstChild);
-        showToast(`Attendance marked for ${student.name}`, "success");
+        showToast(`Attendance marked for ${student.name} (${student.subject})`, "success");
     }
 }
 

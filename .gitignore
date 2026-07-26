@@ -70,3 +70,4 @@ reports/
 uploads/
 dataset/
 backup/
+*.pem
