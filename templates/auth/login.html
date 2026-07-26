@@ -6,12 +6,11 @@
 <div class="d-flex align-items-center justify-content-center min-vh-100 px-3">
     <div class="login-container glass-card p-4 p-md-5 rounded-4 text-center">
         <!-- Logo Header -->
-        <div class="mb-4">
-            <div class="d-inline-flex align-items-center justify-content-center bg-info bg-opacity-10 p-3 rounded-circle border border-info border-opacity-25 pulse-glow-effect mb-3" style="width: 72px; height: 72px;">
-                <i class="bi bi-camera-reconnection accent-color text-glow fs-1"></i>
+        <div class="mb-4 text-center">
+            <div class="logo-wrapper position-relative d-inline-block mb-2">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="FaceTrack AI Logo" class="img-fluid rounded-4 shadow-lg logo-img" style="max-height: 125px; width: auto; filter: drop-shadow(0 0 15px rgba(0, 229, 255, 0.25));">
             </div>
-            <h2 class="fw-bold mb-1">FaceTrack AI</h2>
-            <p class="text-muted small">Smart Attendance Management System</p>
+            <p class="text-muted small mb-0">Smart Attendance Management System</p>
         </div>
 
         <!-- Login Form -->
