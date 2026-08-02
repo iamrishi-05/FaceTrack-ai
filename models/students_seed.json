@@ -1,0 +1,776 @@
+[
+  {
+    "student_id": "1032250251",
+    "name": "Ade Poonam R",
+    "roll_number": "1",
+    "email": "ade.poonam.r.1@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250252",
+    "name": "Awargand Sakshi B",
+    "roll_number": "2",
+    "email": "awargand.sakshi.b.2@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250215",
+    "name": "Ban Gururaj S",
+    "roll_number": "3",
+    "email": "ban.gururaj.s.3@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250003",
+    "name": "Baswade Krushna S",
+    "roll_number": "4",
+    "email": "baswade.krushna.s.4@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250006",
+    "name": "Bhandare Rutuja U",
+    "roll_number": "5",
+    "email": "bhandare.rutuja.u.5@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250253",
+    "name": "Bhise Devaki M",
+    "roll_number": "6",
+    "email": "bhise.devaki.m.6@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250007",
+    "name": "Bhokare Datatray N",
+    "roll_number": "7",
+    "email": "bhokare.datatray.n.7@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250254",
+    "name": "Bhong Omkar B",
+    "roll_number": "8",
+    "email": "bhong.omkar.b.8@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250255",
+    "name": "Bobade Sanyogita A",
+    "roll_number": "9",
+    "email": "bobade.sanyogita.a.9@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250066",
+    "name": "Boinwad Shital R",
+    "roll_number": "10",
+    "email": "boinwad.shital.r.10@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250068",
+    "name": "Bokhare Vaishnavi K",
+    "roll_number": "11",
+    "email": "bokhare.vaishnavi.k.11@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250069",
+    "name": "Chaudhar Pornima K",
+    "roll_number": "12",
+    "email": "chaudhar.pornima.k.12@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250071",
+    "name": "Chavan Ram S",
+    "roll_number": "13",
+    "email": "chavan.ram.s.13@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250072",
+    "name": "Chintale Supriya D",
+    "roll_number": "14",
+    "email": "chintale.supriya.d.14@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250269",
+    "name": "Chubewar Pavan R",
+    "roll_number": "15",
+    "email": "chubewar.pavan.r.15@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250074",
+    "name": "Chubewar Ragini R",
+    "roll_number": "16",
+    "email": "chubewar.ragini.r.16@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250075",
+    "name": "Deshmukh Aditya D",
+    "roll_number": "17",
+    "email": "deshmukh.aditya.d.17@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250076",
+    "name": "Dhage Deepak D",
+    "roll_number": "18",
+    "email": "dhage.deepak.d.18@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250079",
+    "name": "Gadhe Samruddhi S",
+    "roll_number": "19",
+    "email": "gadhe.samruddhi.s.19@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250080",
+    "name": "Ghorband Omkar M",
+    "roll_number": "20",
+    "email": "ghorband.omkar.m.20@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250081",
+    "name": "Gorgile Vrushali M",
+    "roll_number": "21",
+    "email": "gorgile.vrushali.m.21@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "FT-2026-0022",
+    "name": "Hendge Nandkishore T",
+    "roll_number": "22",
+    "email": "hendge.nandkishore.t.22@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250483",
+    "name": "Jadhav Mitali S",
+    "roll_number": "23",
+    "email": "jadhav.mitali.s.23@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250540",
+    "name": "Jadhav Rajesh U",
+    "roll_number": "24",
+    "email": "jadhav.rajesh.u.24@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250086",
+    "name": "Jadhav Rushikesh A",
+    "roll_number": "25",
+    "email": "jadhav.rushikesh.a.25@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250235",
+    "name": "Jadhav Samiksha G",
+    "roll_number": "26",
+    "email": "jadhav.samiksha.g.26@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250484",
+    "name": "Jadhav Sanika S",
+    "roll_number": "27",
+    "email": "jadhav.sanika.s.27@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250089",
+    "name": "Jadhav Shubham S",
+    "roll_number": "28",
+    "email": "jadhav.shubham.s.28@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250090",
+    "name": "Jadhav Shubhangi S",
+    "roll_number": "29",
+    "email": "jadhav.shubhangi.s.29@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250091",
+    "name": "Jagtap Priti R",
+    "roll_number": "30",
+    "email": "jagtap.priti.r.30@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250539",
+    "name": "Janakwade Manmath O",
+    "roll_number": "31",
+    "email": "janakwade.manmath.o.31@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250092",
+    "name": "Kachamwar Pravin P",
+    "roll_number": "32",
+    "email": "kachamwar.pravin.p.32@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250559",
+    "name": "Kadam Abhishek S",
+    "roll_number": "33",
+    "email": "kadam.abhishek.s.33@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "FT-2026-0034",
+    "name": "Kadam Chandana M",
+    "roll_number": "34",
+    "email": "kadam.chandana.m.34@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250262",
+    "name": "Kadam Gayatri G",
+    "roll_number": "35",
+    "email": "kadam.gayatri.g.35@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250093",
+    "name": "Kadam Janhavi G",
+    "roll_number": "36",
+    "email": "kadam.janhavi.g.36@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250094",
+    "name": "Kadam Pranav P",
+    "roll_number": "37",
+    "email": "kadam.pranav.p.37@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250095",
+    "name": "Kadam Prathamesh B",
+    "roll_number": "38",
+    "email": "kadam.prathamesh.b.38@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250096",
+    "name": "Kadam Pratiksha P",
+    "roll_number": "39",
+    "email": "kadam.pratiksha.p.39@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250233",
+    "name": "Kadam Sakshi V",
+    "roll_number": "40",
+    "email": "kadam.sakshi.v.40@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250099",
+    "name": "Kadam Shweta J",
+    "roll_number": "41",
+    "email": "kadam.shweta.j.41@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250100",
+    "name": "Kadam Tanaya V",
+    "roll_number": "42",
+    "email": "kadam.tanaya.v.42@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250101",
+    "name": "Kadam Vikram R",
+    "roll_number": "43",
+    "email": "kadam.vikram.r.43@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "FT-2026-0044",
+    "name": "Kadampalle Gayatri A",
+    "roll_number": "44",
+    "email": "kadampalle.gayatri.a.44@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250469",
+    "name": "Kailase Shivam G",
+    "roll_number": "45",
+    "email": "kailase.shivam.g.45@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250102",
+    "name": "Kale Shreya V",
+    "roll_number": "46",
+    "email": "kale.shreya.v.46@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "FT-2026-0047",
+    "name": "Kamkule Kondiba T",
+    "roll_number": "47",
+    "email": "kamkule.kondiba.t.47@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250103",
+    "name": "Karanje Shivam G",
+    "roll_number": "48",
+    "email": "karanje.shivam.g.48@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250237",
+    "name": "Kure Aditya D",
+    "roll_number": "49",
+    "email": "kure.aditya.d.49@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250104",
+    "name": "Lone Om G",
+    "roll_number": "50",
+    "email": "lone.om.g.50@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250106",
+    "name": "Lone Sumit B",
+    "roll_number": "51",
+    "email": "lone.sumit.b.51@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250108",
+    "name": "Mangnale Shivanand D",
+    "roll_number": "52",
+    "email": "mangnale.shivanand.d.52@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250111",
+    "name": "Maske Sakshi R",
+    "roll_number": "53",
+    "email": "maske.sakshi.r.53@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250119",
+    "name": "Matalkar Sakshi S",
+    "roll_number": "54",
+    "email": "matalkar.sakshi.s.54@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250537",
+    "name": "More Aditya D",
+    "roll_number": "55",
+    "email": "more.aditya.d.55@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250268",
+    "name": "More Govind M",
+    "roll_number": "56",
+    "email": "more.govind.m.56@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250120",
+    "name": "More Meera B",
+    "roll_number": "57",
+    "email": "more.meera.b.57@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250122",
+    "name": "Motarge Shivani S",
+    "roll_number": "58",
+    "email": "motarge.shivani.s.58@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250130",
+    "name": "Paikrao Priyanka M",
+    "roll_number": "59",
+    "email": "paikrao.priyanka.m.59@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250131",
+    "name": "Parve Mokshada D",
+    "roll_number": "60",
+    "email": "parve.mokshada.d.60@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250136",
+    "name": "Patange Tanvi M",
+    "roll_number": "61",
+    "email": "patange.tanvi.m.61@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250142",
+    "name": "Pawar Nagesh M",
+    "roll_number": "62",
+    "email": "pawar.nagesh.m.62@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250541",
+    "name": "Pawar Vishal S",
+    "roll_number": "63",
+    "email": "pawar.vishal.s.63@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250144",
+    "name": "Pople Shruti D",
+    "roll_number": "64",
+    "email": "pople.shruti.d.64@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250146",
+    "name": "Puyad Shivkumar S",
+    "roll_number": "65",
+    "email": "puyad.shivkumar.s.65@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "FT-2026-0066",
+    "name": "Puyyad Shivshankar S",
+    "roll_number": "66",
+    "email": "puyyad.shivshankar.s.66@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250155",
+    "name": "Ramgadiya Hansraj Singh F",
+    "roll_number": "67",
+    "email": "ramgadiya.hansraj.singh.f.67@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250499",
+    "name": "Rupner Sagar G",
+    "roll_number": "68",
+    "email": "rupner.sagar.g.68@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250157",
+    "name": "Shaikh Umme Salma M",
+    "roll_number": "69",
+    "email": "shaikh.umme.salma.m.69@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250158",
+    "name": "Sharma Vedant M",
+    "roll_number": "70",
+    "email": "sharma.vedant.m.70@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250195",
+    "name": "Shete Pragati S",
+    "roll_number": "71",
+    "email": "shete.pragati.s.71@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250196",
+    "name": "Shimpale Sandesh R",
+    "roll_number": "72",
+    "email": "shimpale.sandesh.r.72@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250198",
+    "name": "Shinde Mohan S",
+    "roll_number": "73",
+    "email": "shinde.mohan.s.73@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250199",
+    "name": "Shinde Ritesh B",
+    "roll_number": "74",
+    "email": "shinde.ritesh.b.74@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250206",
+    "name": "Sonawane Pooja R",
+    "roll_number": "75",
+    "email": "sonawane.pooja.r.75@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250232",
+    "name": "Suryawanshi Pooja J",
+    "roll_number": "76",
+    "email": "suryawanshi.pooja.j.76@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250256",
+    "name": "Swami Sakshi S",
+    "roll_number": "77",
+    "email": "swami.sakshi.s.77@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250229",
+    "name": "Taru Sharayu R",
+    "roll_number": "78",
+    "email": "taru.sharayu.r.78@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250230",
+    "name": "Thadke Laxmi S",
+    "roll_number": "79",
+    "email": "thadke.laxmi.s.79@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "1032250231",
+    "name": "Theware Shejal A",
+    "roll_number": "80",
+    "email": "theware.shejal.a.80@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "FT-2026-0081",
+    "name": "Thorat Aniket R",
+    "roll_number": "81",
+    "email": "thorat.aniket.r.81@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "FT-2026-0082",
+    "name": "Ubale Prathamesh S",
+    "roll_number": "82",
+    "email": "ubale.prathamesh.s.82@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "FT-2026-0083",
+    "name": "Upare Sai A",
+    "roll_number": "83",
+    "email": "upare.sai.a.83@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "FT-2026-0084",
+    "name": "Vaidya Manik A",
+    "roll_number": "84",
+    "email": "vaidya.manik.a.84@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "FT-2026-0085",
+    "name": "Waghmare Sapna P",
+    "roll_number": "85",
+    "email": "waghmare.sapna.p.85@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  },
+  {
+    "student_id": "FT-2026-0086",
+    "name": "Shinde Shivam",
+    "roll_number": "86",
+    "email": "shinde.shivam.86@mgm.edu",
+    "phone": null,
+    "department": "Computer Science",
+    "semester": "Semester 3"
+  }
+]
