@@ -208,3 +208,40 @@ def delete_all_students():
     except Exception as e:
         log_event("ERROR", "StudentManagement", f"Failed to delete all student data: {str(e)}")
         return False, f"Error clearing student data: {str(e)}"
+
+def verify_student(username, password):
+    """
+    Verifies student credentials where:
+    - Username (Login ID) is the student's middle name (case-insensitive).
+    - Password is the last 4 digits of their student_id.
+    Returns the student record if valid, otherwise None.
+    """
+    if not username or not password:
+        return None
+
+    clean_username = username.strip().lower()
+    clean_password = password.strip()
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM students WHERE status = 'Active'")
+        students = cursor.fetchall()
+        
+        for student in students:
+            full_name = (student['name'] or '').strip()
+            parts = full_name.split()
+            if not parts:
+                continue
+                
+            # Middle name (2nd word for 2+ word names, otherwise 1st word)
+            middle_name = parts[1].lower() if len(parts) >= 2 else parts[0].lower()
+            
+            st_id = (student['student_id'] or '').strip()
+            last_4_digits = st_id[-4:] if len(st_id) >= 4 else st_id
+            
+            # Match middle name (or fallback if 2-word/1-word name) with clean_username
+            if (middle_name == clean_username or (len(parts) == 2 and parts[0].lower() == clean_username)) and last_4_digits == clean_password:
+                return student
+
+    return None
+

@@ -6,4 +6,5 @@ openpyxl==3.1.5
 reportlab==4.2.2
 werkzeug==3.0.3
 face-recognition==1.3.0
+gunicorn==22.0.0
 # cmake is required to install face-recognition/dlib

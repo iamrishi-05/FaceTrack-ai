@@ -55,7 +55,7 @@
         {% endwith %}
     </div>
 
-    {% if session.get('admin_id') %}
+    {% if session.get('admin_id') or session.get('student_id') %}
     <!-- Main Authenticated Layout -->
     <div class="app-wrapper">
         
@@ -67,6 +67,7 @@
             </div>
             
             <ul class="sidebar-menu">
+                {% if session.get('admin_id') %}
                 <li class="menu-item {% if active_page == 'dashboard' %}active{% endif %}">
                     <a href="{{ url_for('dashboard.index') }}" class="menu-link">
                         <i class="bi bi-grid-1x2-fill"></i>
@@ -109,11 +110,32 @@
                         <span>Settings</span>
                     </a>
                 </li>
+                {% else %}
+                <!-- Student Menu -->
+                <li class="menu-item {% if active_page == 'students' %}active{% endif %}">
+                    <a href="{{ url_for('students.profile', student_id=session.get('student_id')) }}" class="menu-link">
+                        <i class="bi bi-person-badge-fill"></i>
+                        <span>My Profile</span>
+                    </a>
+                </li>
+                <li class="menu-item {% if active_page == 'scanner' %}active{% endif %}">
+                    <a href="{{ url_for('attendance.scanner') }}" class="menu-link">
+                        <i class="bi bi-qr-code-scan"></i>
+                        <span>Face Scanner</span>
+                    </a>
+                </li>
+                <li class="menu-item {% if active_page == 'history' %}active{% endif %}">
+                    <a href="{{ url_for('attendance.history') }}" class="menu-link">
+                        <i class="bi bi-calendar2-check-fill"></i>
+                        <span>My Attendance</span>
+                    </a>
+                </li>
+                {% endif %}
             </ul>
             
             <div class="sidebar-footer">
                 <div>Logged in as: <strong>{{ session.get('username') }}</strong></div>
-                <div class="mt-1 small opacity-50">v1.0.0 (Stable)</div>
+                <div class="mt-1 small opacity-50">{% if session.get('admin_id') %}Administrator{% else %}Student Account{% endif %}</div>
             </div>
         </aside>
         
@@ -137,20 +159,28 @@
                         <i class="bi bi-moon-fill" id="themeIcon"></i>
                     </button>
                     
-                    <!-- Admin Dropdown -->
+                    <!-- Profile Dropdown -->
                     <div class="dropdown">
                         <button class="admin-profile-btn dropdown-toggle" type="button" id="adminDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                             <div class="admin-avatar">
-                                {{ session.get('name', 'A')[:1].upper() }}
+                                {{ session.get('name', 'U')[:1].upper() }}
                             </div>
                             <span class="d-none d-md-inline">{{ session.get('name') }}</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end glass-card border-0 shadow-lg p-2" aria-labelledby="adminDropdown" style="background: rgba(15, 23, 42, 0.95);">
+                            {% if session.get('admin_id') %}
                             <li>
                                 <a class="dropdown-item rounded py-2 text-white" href="{{ url_for('settings.index') }}">
                                     <i class="bi bi-person-fill me-2"></i>Profile Settings
                                 </a>
                             </li>
+                            {% else %}
+                            <li>
+                                <a class="dropdown-item rounded py-2 text-white" href="{{ url_for('students.profile', student_id=session.get('student_id')) }}">
+                                    <i class="bi bi-person-fill me-2"></i>My Profile
+                                </a>
+                            </li>
+                            {% endif %}
                             <li><hr class="dropdown-divider bg-secondary opacity-25"></li>
                             <li>
                                 <a class="dropdown-item rounded py-2 text-danger" href="{{ url_for('auth.logout') }}">

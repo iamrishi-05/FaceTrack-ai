@@ -1,47 +1,73 @@
 from flask import Blueprint, render_template, redirect, url_for, request, session, flash
 from models.admin import verify_admin
+from models.student import verify_student
 from utils.logger import log_event
 
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    # If already logged in, redirect to dashboard
+    # If already logged in, redirect to appropriate page
     if 'admin_id' in session:
         return redirect(url_for('dashboard.index'))
+    if 'student_id' in session:
+        return redirect(url_for('students.profile', student_id=session['student_id']))
         
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
-        password = request.form.get('password', '')
+        password = request.form.get('password', '').strip()
         remember = request.form.get('remember') == 'on'
         
         if not username or not password:
             flash("Please enter both username and password.", "error")
             return render_template('auth/login.html')
             
+        # 1. Attempt Administrator Authentication
         admin = verify_admin(username, password)
         if admin:
-            # Login successful
             session['admin_id'] = admin['id']
             session['username'] = admin['username']
             session['name'] = admin['name']
+            session['role'] = 'admin'
             
             if remember:
-                session.permanent = True  # Cookie will persist for standard duration (usually 31 days)
+                session.permanent = True
             else:
                 session.permanent = False
                 
             log_event("INFO", "Authentication", f"Admin user '{username}' logged in successfully.")
             flash(f"Welcome back, {admin['name']}!", "success")
             
-            # Redirect to next parameter or dashboard
             next_url = request.args.get('next')
-            if next_url and next_url.startswith('/'): # Prevent open redirect vulnerabilities
+            if next_url and next_url.startswith('/'):
                 return redirect(next_url)
             return redirect(url_for('dashboard.index'))
-        else:
-            log_event("WARNING", "Authentication", f"Failed login attempt for user '{username}'.")
-            flash("Invalid username or password.", "error")
+
+        # 2. Attempt Student Authentication (Username = Middle Name, Password = last 4 digits of Student ID)
+        student = verify_student(username, password)
+        if student:
+            parts = student['name'].strip().split()
+            middle_name = parts[1] if len(parts) >= 2 else (parts[0] if parts else student['name'])
+            session['student_id'] = student['student_id']
+            session['username'] = middle_name
+            session['name'] = student['name']
+            session['role'] = 'student'
+            
+            if remember:
+                session.permanent = True
+            else:
+                session.permanent = False
+                
+            log_event("INFO", "Authentication", f"Student '{student['name']}' ({student['student_id']}) logged in successfully.")
+            flash(f"Welcome back, {student['name']}!", "success")
+            
+            next_url = request.args.get('next')
+            if next_url and next_url.startswith('/'):
+                return redirect(next_url)
+            return redirect(url_for('students.profile', student_id=student['student_id']))
+
+        log_event("WARNING", "Authentication", f"Failed login attempt for user '{username}'.")
+        flash("Invalid username or password.", "error")
             
     return render_template('auth/login.html')
 

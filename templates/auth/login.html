@@ -20,7 +20,7 @@
                 <label for="username" class="form-label form-label-glass">Username</label>
                 <div class="input-group">
                     <span class="input-group-text form-glass border-end-0" style="background: rgba(255, 255, 255, 0.01);"><i class="bi bi-person-fill text-muted"></i></span>
-                    <input type="text" class="form-control form-glass border-start-0" id="username" name="username" placeholder="Enter username" required value="admin">
+                    <input type="text" class="form-control form-glass border-start-0" id="username" name="username" placeholder="Enter username" required autocomplete="username">
                 </div>
             </div>
 
@@ -31,7 +31,7 @@
                 </div>
                 <div class="input-group">
                     <span class="input-group-text form-glass border-end-0" style="background: rgba(255, 255, 255, 0.01);"><i class="bi bi-lock-fill text-muted"></i></span>
-                    <input type="password" class="form-control form-glass border-start-0" id="password" name="password" placeholder="Enter password" required value="adminpassword">
+                    <input type="password" class="form-control form-glass border-start-0" id="password" name="password" placeholder="Enter password" required autocomplete="current-password">
                 </div>
             </div>
 
@@ -42,13 +42,6 @@
 
             <button type="submit" class="btn btn-glass w-100 py-3">Sign In</button>
         </form>
-
-        <!-- System Credentials Warning (For Demo Purposes) -->
-        <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 text-center">
-            <div class="badge bg-secondary bg-opacity-20 text-muted px-3 py-2 rounded-pill font-monospace small">
-                Demo User: admin | pwd: adminpassword
-            </div>
-        </div>
     </div>
 </div>
 {% endblock %}
