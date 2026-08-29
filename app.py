@@ -10,7 +10,10 @@ app.config.from_object(Config)
 
 # Ensure essential directories are provisioned on start
 for folder in [Config.UPLOAD_FOLDER, Config.DATASET_FOLDER, Config.BACKUP_FOLDER, Config.LOGS_FOLDER, Config.REPORTS_FOLDER]:
-    os.makedirs(folder, exist_ok=True)
+    try:
+        os.makedirs(folder, exist_ok=True)
+    except Exception as e:
+        print(f"[WARN] Failed to create folder {folder}: {e}")
 
 # Initialize database schemas
 try:

@@ -2,28 +2,28 @@ import logging
 import os
 from datetime import datetime
 from config import Config
-import sqlite3
 
-# Ensure log directory exists
-os.makedirs(Config.LOGS_FOLDER, exist_ok=True)
-log_file_path = os.path.join(Config.LOGS_FOLDER, 'app.log')
+# Setup Python handlers safely
+handlers = [logging.StreamHandler()]
 
-# Setup default Python logger
+try:
+    os.makedirs(Config.LOGS_FOLDER, exist_ok=True)
+    log_file_path = os.path.join(Config.LOGS_FOLDER, 'app.log')
+    handlers.append(logging.FileHandler(log_file_path))
+except Exception as e:
+    print(f"[LOGGER WARN] Could not initialize file handler: {e}")
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(module)s: %(message)s',
-    handlers=[
-        logging.FileHandler(log_file_path),
-        logging.StreamHandler()
-    ]
+    handlers=handlers
 )
 logger = logging.getLogger("FaceTrackAI")
 
 def log_event(level, module, message):
     """
-    Logs an event to both the python file logger and the SQLite system_logs database.
+    Logs an event to both the python standard logger and the SQLite system_logs database.
     """
-    # 1. Log to Python standard file logger
     level_upper = level.upper()
     if level_upper == 'DEBUG':
         logger.debug(f"{module} - {message}")
@@ -34,9 +34,8 @@ def log_event(level, module, message):
     else:
         logger.info(f"{module} - {message}")
         
-    # 2. Log to SQLite Database (Non-blocking fallback)
+    # Log to SQLite Database (Non-blocking fallback)
     try:
-        # Import dynamically to avoid circular references
         from models.db import get_db_connection
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -45,5 +44,4 @@ def log_event(level, module, message):
                 VALUES (?, ?, ?, ?)
             ''', (level_upper, module, message, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     except Exception as e:
-        # Fallback to printing directly if database logging fails
         print(f"[LOGGER ERROR] Failed to write log to DB: {e}")

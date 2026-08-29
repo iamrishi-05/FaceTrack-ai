@@ -3,10 +3,13 @@ import os
 class Config:
     # Flask configuration
     SECRET_KEY = os.environ.get('SECRET_KEY', 'facetrack-ai-super-secret-key-185934')
-    DEBUG = True
+    DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() in ('true', '1')
 
-    # Database
-    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    # Check if running on Vercel (read-only filesystem)
+    IS_VERCEL = bool(os.environ.get('VERCEL'))
+    
+    # Store writeable files in /tmp on Vercel
+    BASE_DIR = '/tmp/facetrack_data' if IS_VERCEL else os.path.abspath(os.path.dirname(__file__))
     DB_NAME = 'database.db'
     DATABASE_PATH = os.path.join(BASE_DIR, DB_NAME)
 
@@ -22,7 +25,6 @@ class Config:
     SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
 
     # AI & Face Recognition settings
-    # face_recognition uses distance (lower means more strict). Confidence % will be calculated as (1 - distance) * 100
     DEFAULT_TOLERANCE = 0.5  # Face matching tolerance (0.4 - 0.6)
     DEFAULT_CONFIDENCE_THRESHOLD = 60.0  # Display confidence % threshold
     

@@ -72,3 +72,4 @@ dataset/
 backup/
 *.pem
 cloudflared
+.vercel
