@@ -80,7 +80,12 @@ FaceTrackAI/
 ### Setup Instructions
 1. Clone or navigate to the project directory:
    ```bash
-   cd "/Users/rushikeshjadhav/ai attendence"
+   git clone https://github.com/iamrishi-05/FaceTrack-ai.git
+   cd FaceTrack-ai
+   ```
+   Or navigate to your local folder:
+   ```bash
+   cd "/Users/rushikeshjadhav/FaceTrack-ai"
    ```
 2. Install standard dependencies:
    ```bash
