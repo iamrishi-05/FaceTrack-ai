@@ -1,4 +1,7 @@
 import json
+import cv2
+import base64
+import numpy as np
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from models.db import get_db_connection
@@ -172,6 +175,130 @@ def clear_encodings(student_id):
     except Exception as e:
         log_event("ERROR", "Biometrics", f"Failed to clear biometrics: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@api_bp.route('/api/recognize_image_upload', methods=['POST'])
+def recognize_image_upload():
+    """
+    Processes an uploaded image file or base64 photo for multi-face recognition.
+    Detects faces, compares with database encodings, draws annotations on the image,
+    logs attendance / recognition event, and returns JSON response with annotated image.
+    """
+    subject = request.form.get('subject') or 'Auto'
+    rgb_image = None
+    
+    # Check if uploaded via FormData file or JSON payload
+    if 'file' in request.files:
+        file = request.files['file']
+        if file.filename != '':
+            file_bytes = np.frombuffer(file.read(), np.uint8)
+            bgr_img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            if bgr_img is not None:
+                rgb_image = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
+            else:
+                return jsonify({'status': 'error', 'message': 'Invalid image file.'}), 400
+        else:
+            return jsonify({'status': 'error', 'message': 'No file selected.'}), 400
+    else:
+        data = request.get_json(silent=True)
+        if data and 'image' in data:
+            rgb_image = face_service.decode_image(data['image'])
+            subject = data.get('subject', 'Auto')
+        else:
+            return jsonify({'status': 'error', 'message': 'No image data provided.'}), 400
+            
+    if rgb_image is None:
+        return jsonify({'status': 'error', 'message': 'Failed to process image.'}), 400
+        
+    # Detect faces
+    face_locations = face_service.detect_faces(rgb_image)
+    if not face_locations:
+        return jsonify({'status': 'no_face', 'message': 'No faces detected in the uploaded photo.'}), 200
+
+    # Fetch tolerance & confidence thresholds
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM settings WHERE key='tolerance'")
+        tolerance = float(cursor.fetchone()['value'])
+        cursor.execute("SELECT value FROM settings WHERE key='confidence_threshold'")
+        confidence_threshold = float(cursor.fetchone()['value'])
+        
+        cursor.execute("SELECT student_id, encoding_json FROM face_encodings")
+        db_records = cursor.fetchall()
+
+    known_encodings = []
+    known_ids = []
+    for r in db_records:
+        known_encodings.append(json.loads(r['encoding_json']))
+        known_ids.append(r['student_id'])
+        
+    probe_encodings = face_service.get_face_encodings(rgb_image, face_locations)
+    
+    # Clone image for drawing annotations (convert RGB back to BGR for OpenCV drawing)
+    annotated_bgr = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
+    matches_list = []
+    
+    for idx, probe in enumerate(probe_encodings):
+        loc = face_locations[idx]
+        analysis = face_service.analyze_face_features(rgb_image, loc)
+        
+        top, right, bottom, left = loc
+        match_found = False
+        matched_id = None
+        best_dist = 1.0
+        
+        if known_encodings:
+            matches = face_service.compare_faces(known_encodings, probe, tolerance=tolerance)
+            for m_idx, is_match in enumerate(matches):
+                if is_match:
+                    dist = face_service.calculate_distance(known_encodings[m_idx], probe)
+                    if dist < best_dist:
+                        best_dist = dist
+                        matched_id = known_ids[m_idx]
+                        match_found = True
+                        
+        if match_found:
+            if not FACE_REC_AVAILABLE:
+                max_allowed_dist = tolerance * 1.5
+                if max_allowed_dist > 0:
+                    confidence = 100.0 - (100.0 - confidence_threshold) * (best_dist / max_allowed_dist)
+                    confidence = round(max(confidence_threshold, min(100.0, confidence)), 1)
+                else:
+                    confidence = 100.0
+            else:
+                confidence = round((1.0 - best_dist) * 100, 1)
+        else:
+            confidence = 0.0
+            
+        if match_found and confidence >= confidence_threshold:
+            attendance_status, student_info = process_attendance_mark(matched_id, confidence, analysis, subject=subject)
+            student_info['confidence'] = confidence
+            student_info['features'] = analysis
+            student_info['attendance'] = attendance_status
+            matches_list.append(student_info)
+            
+            # Draw emerald green bounding box and label
+            cv2.rectangle(annotated_bgr, (left, top), (right, bottom), (16, 185, 129), 3)
+            label = f"{student_info['name']} ({confidence}%)"
+            cv2.rectangle(annotated_bgr, (left, top - 30), (right, top), (16, 185, 129), -1)
+            cv2.putText(annotated_bgr, label, (left + 5, top - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+        else:
+            # Draw red bounding box for unrecognized face
+            cv2.rectangle(annotated_bgr, (left, top), (right, bottom), (239, 68, 68), 2)
+            cv2.rectangle(annotated_bgr, (left, top - 25), (right, top), (239, 68, 68), -1)
+            cv2.putText(annotated_bgr, "Unknown Person", (left + 5, top - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+    # Encode annotated image to Base64 JPEG data URL
+    _, buffer = cv2.imencode('.jpg', annotated_bgr)
+    b64_str = base64.b64encode(buffer).decode('utf-8')
+    annotated_data_url = f"data:image/jpeg;base64,{b64_str}"
+    
+    return jsonify({
+        'status': 'success',
+        'faces_detected': len(face_locations),
+        'faces_matched': len(matches_list),
+        'annotated_image': annotated_data_url,
+        'matches': matches_list
+    }), 200
 
 def get_current_scheduled_lecture(now_dt=None):
     """

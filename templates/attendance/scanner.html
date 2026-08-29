@@ -5,129 +5,232 @@
 {% block header_title %}{% if session.get('app_mode') == 'recognition' %}Live Face & Identity Finder{% else %}Live Face Recognition & Attendance Terminal{% endif %}{% endblock %}
 
 {% block content %}
-<div class="row g-4">
-    <!-- Camera feed column (Left) -->
-    <div class="col-lg-7">
-        <div class="glass-card p-4 text-center">
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <h5 class="fw-bold mb-0 text-start">
-                    {% if session.get('app_mode') == 'recognition' %}
-                        <i class="bi bi-person-bounding-box me-2 text-info text-glow"></i>Live Identity Matcher
-                    {% else %}
-                        <i class="bi bi-camera-reconnection me-2 accent-color text-glow"></i>Live Recognition Feed
-                    {% endif %}
-                </h5>
-                
-                {% if not face_rec_ready %}
-                    <span class="badge bg-warning bg-opacity-20 text-warning px-3 py-1 rounded-pill small" title="C-linked library is missing. Using high-fidelity Haar Cascade fallback.">
-                        <i class="bi bi-cpu-fill me-1"></i>Camera Active (Cascade Fallback)
-                    </span>
-                {% else %}
-                    <span class="badge bg-success bg-opacity-20 text-success px-3 py-1 rounded-pill small">
-                        <i class="bi bi-shield-fill-check me-1"></i>Biometric Matcher Active
-                    </span>
-                {% endif %}
-            </div>
-            
-            <div class="scanner-frame-wrapper mb-3">
-                <video id="webcam" class="scanner-video-element" autoplay playsinline></video>
-                <canvas id="overlayCanvas" class="scanner-canvas-element"></canvas>
-                <div class="scan-overlay-active"></div>
-            </div>
-            
-            <!-- Controls -->
-            <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                {% if session.get('app_mode') != 'recognition' %}
-                <div class="d-flex align-items-center gap-2">
-                    <label for="lectureSelect" class="form-label form-label-glass mb-0 small text-nowrap"><i class="bi bi-journal-bookmark-fill me-1 accent-color"></i>Lecture:</label>
-                    <select class="form-select form-glass w-auto py-1" id="lectureSelect" title="Select scheduled lecture class">
-                        <option value="Auto" selected>⏰ Auto-Detect Schedule</option>
-                        <option value="Python">🐍 Python (09:30 - 10:30)</option>
-                        <option value="Software Engineering">⚙️ Software Engineering (10:30 - 11:30)</option>
-                        <option value="Java">☕ Java (11:30 - 12:30)</option>
-                    </select>
-                </div>
-                {% else %}
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-info bg-opacity-20 text-info px-3 py-2 rounded-pill small">
-                        <i class="bi bi-search me-1"></i> Mode: Identity Recognition & Person Search
-                    </span>
-                </div>
-                {% endif %}
 
-                <div class="d-flex align-items-center gap-2">
-                    <select class="form-select form-glass w-auto py-1" id="cameraSelect">
-                        <option value="">Default Camera</option>
-                    </select>
-                    <button class="btn btn-glass px-4 py-1" id="toggleScanBtn"><i class="bi bi-camera-fill me-1"></i>Start Scanner</button>
+<!-- Mode Tabs Header -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <ul class="nav nav-pills glass-card p-1 rounded-pill" id="scannerModeTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active rounded-pill px-4 py-2 fw-bold small" id="webcam-tab" data-bs-toggle="pill" data-bs-target="#webcam-pane" type="button" role="tab">
+                <i class="bi bi-camera-video-fill me-2"></i>Live Webcam Feed
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-4 py-2 fw-bold small" id="upload-tab" data-bs-toggle="pill" data-bs-target="#upload-pane" type="button" role="tab">
+                <i class="bi bi-file-image-fill me-2"></i>Upload Photo Recognition
+            </button>
+        </li>
+    </ul>
+
+    <div>
+        {% if session.get('app_mode') == 'recognition' %}
+            <span class="badge bg-info bg-opacity-20 text-info px-3 py-2 rounded-pill small">
+                <i class="bi bi-person-bounding-box me-1"></i> People Recognition Mode Active
+            </span>
+        {% else %}
+            <span class="badge bg-primary bg-opacity-20 text-primary px-3 py-2 rounded-pill small">
+                <i class="bi bi-calendar-check me-1"></i> Attendance System Mode Active
+            </span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="tab-content" id="scannerTabContent">
+    
+    <!-- 1. Live Webcam Feed Tab -->
+    <div class="tab-pane fade show active" id="webcam-pane" role="tabpanel">
+        <div class="row g-4">
+            <!-- Camera feed column (Left) -->
+            <div class="col-lg-7">
+                <div class="glass-card p-4 text-center">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h5 class="fw-bold mb-0 text-start">
+                            {% if session.get('app_mode') == 'recognition' %}
+                                <i class="bi bi-person-bounding-box me-2 text-info text-glow"></i>Live Identity Matcher
+                            {% else %}
+                                <i class="bi bi-camera-reconnection me-2 accent-color text-glow"></i>Live Recognition Feed
+                            {% endif %}
+                        </h5>
+                        
+                        {% if not face_rec_ready %}
+                            <span class="badge bg-warning bg-opacity-20 text-warning px-3 py-1 rounded-pill small" title="C-linked library is missing. Using high-fidelity Haar Cascade fallback.">
+                                <i class="bi bi-cpu-fill me-1"></i>Camera Active (Cascade Fallback)
+                            </span>
+                        {% else %}
+                            <span class="badge bg-success bg-opacity-20 text-success px-3 py-1 rounded-pill small">
+                                <i class="bi bi-shield-fill-check me-1"></i>Biometric Matcher Active
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="scanner-frame-wrapper mb-3">
+                        <video id="webcam" class="scanner-video-element" autoplay playsinline></video>
+                        <canvas id="overlayCanvas" class="scanner-canvas-element"></canvas>
+                        <div class="scan-overlay-active"></div>
+                    </div>
+                    
+                    <!-- Controls -->
+                    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                        {% if session.get('app_mode') != 'recognition' %}
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="lectureSelect" class="form-label form-label-glass mb-0 small text-nowrap"><i class="bi bi-journal-bookmark-fill me-1 accent-color"></i>Lecture:</label>
+                            <select class="form-select form-glass w-auto py-1" id="lectureSelect" title="Select scheduled lecture class">
+                                <option value="Auto" selected>⏰ Auto-Detect Schedule</option>
+                                <option value="Python">🐍 Python (09:30 - 10:30)</option>
+                                <option value="Software Engineering">⚙️ Software Engineering (10:30 - 11:30)</option>
+                                <option value="Java">☕ Java (11:30 - 12:30)</option>
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex align-items-center gap-2 ms-auto">
+                            <select class="form-select form-glass w-auto py-1" id="cameraSelect">
+                                <option value="">Default Camera</option>
+                            </select>
+                            <button class="btn btn-glass px-4 py-1" id="toggleScanBtn"><i class="bi bi-camera-fill me-1"></i>Start Scanner</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI Status & Identity Profile column (Right) -->
+            <div class="col-lg-5 d-flex flex-column gap-4">
+                
+                <!-- Live Person Identity Profile Card -->
+                <div class="glass-card p-4 text-start" id="personIdentityCard">
+                    <h5 class="fw-bold mb-3 d-flex align-items-center justify-content-between">
+                        <span><i class="bi bi-person-badge-fill me-2 text-info"></i>Recognized Person Profile</span>
+                        <span class="badge bg-secondary bg-opacity-20 text-muted fs-6" id="matchConfidenceBadge">Awaiting Scan</span>
+                    </h5>
+                    
+                    <div id="identityContent">
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-person-bounding-box display-4 opacity-25 mb-2 d-block"></i>
+                            <p class="small mb-0">Point camera at a registered person's face to display identity details, contact info, and status.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Features Metrics Card -->
+                <div class="glass-card p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-cpu me-2 accent-color"></i>Liveness & Feature Analysis</h5>
+                    
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
+                                <span class="text-muted small d-block mb-1">Blink State</span>
+                                <h6 class="fw-bold mb-0 text-glow" id="statBlink"><span class="text-muted">No Face</span></h6>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
+                                <span class="text-muted small d-block mb-1">Smile State</span>
+                                <h6 class="fw-bold mb-0 text-glow" id="statSmile"><span class="text-muted">No Face</span></h6>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
+                                <span class="text-muted small d-block mb-1">Mask Detect</span>
+                                <h6 class="fw-bold mb-0 text-glow" id="statMask"><span class="text-muted">No Face</span></h6>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
+                                <span class="text-muted small d-block mb-1">Emotion</span>
+                                <h6 class="fw-bold mb-0 text-glow text-uppercase" id="statEmotion"><span class="text-muted">No Face</span></h6>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- AI Status & Identity Profile column (Right) -->
-    <div class="col-lg-5 d-flex flex-column gap-4">
-        
-        <!-- Live Person Identity Profile Card -->
-        <div class="glass-card p-4 text-start" id="personIdentityCard">
-            <h5 class="fw-bold mb-3 d-flex align-items-center justify-content-between">
-                <span><i class="bi bi-person-badge-fill me-2 text-info"></i>Recognized Person Profile</span>
-                <span class="badge bg-secondary bg-opacity-20 text-muted fs-6" id="matchConfidenceBadge">Awaiting Scan</span>
-            </h5>
-            
-            <div id="identityContent">
-                <div class="text-center py-4 text-muted">
-                    <i class="bi bi-person-bounding-box display-4 opacity-25 mb-2 d-block"></i>
-                    <p class="small mb-0">Point camera at a registered person's face to display identity details, contact info, and status.</p>
-                </div>
-            </div>
-        </div>
 
-        <!-- AI Features Metrics Card -->
-        <div class="glass-card p-4">
-            <h5 class="fw-bold mb-3"><i class="bi bi-cpu me-2 accent-color"></i>Liveness & Feature Analysis</h5>
+    <!-- 2. Upload Photo Recognition Tab -->
+    <div class="tab-pane fade" id="upload-pane" role="tabpanel">
+        <div class="row g-4">
             
-            <div class="row g-3">
-                <div class="col-6">
-                    <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
-                        <span class="text-muted small d-block mb-1">Blink State</span>
-                        <h6 class="fw-bold mb-0 text-glow" id="statBlink"><span class="text-muted">No Face</span></h6>
+            <!-- Upload Drop Zone Column (Left) -->
+            <div class="col-lg-6">
+                <div class="glass-card p-4 text-center">
+                    <h5 class="fw-bold mb-3 text-start"><i class="bi bi-cloud-arrow-up-fill me-2 text-info"></i>Upload Photo for Instant Recognition</h5>
+                    <p class="text-muted small text-start mb-4">Provide any photo containing single or multiple faces. FaceTrack AI will detect, match, and extract identity profiles automatically.</p>
+                    
+                    <div class="drop-zone-custom p-5 rounded-4 border border-2 border-dashed text-center cursor-pointer mb-3 position-relative" id="dropZone" onclick="document.getElementById('photoFileInput').click()">
+                        <input type="file" id="photoFileInput" accept="image/*" class="d-none" onchange="handleFileSelect(this.files[0])">
+                        
+                        <div id="dropZoneContent">
+                            <i class="bi bi-images display-3 accent-color opacity-75 mb-3 d-block"></i>
+                            <h6 class="fw-bold text-light mb-1">Drag & Drop photo here or Click to Browse</h6>
+                            <span class="text-muted small">Supports JPG, PNG, WEBP formats</span>
+                        </div>
+                        
+                        <!-- Uploading Spinner -->
+                        <div id="uploadSpinner" class="d-none py-3">
+                            <div class="spinner-border text-info mb-2" role="status" style="width: 3rem; height: 3rem;"></div>
+                            <h6 class="fw-bold text-info mb-0">Processing Biometrics & Matching Faces...</h6>
+                        </div>
                     </div>
-                </div>
-                <div class="col-6">
-                    <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
-                        <span class="text-muted small d-block mb-1">Smile State</span>
-                        <h6 class="fw-bold mb-0 text-glow" id="statSmile"><span class="text-muted">No Face</span></h6>
+
+                    {% if session.get('app_mode') != 'recognition' %}
+                    <div class="d-flex align-items-center gap-2 text-start">
+                        <label for="uploadLectureSelect" class="form-label form-label-glass mb-0 small text-nowrap"><i class="bi bi-journal-bookmark-fill me-1 accent-color"></i>Mark Attendance For:</label>
+                        <select class="form-select form-glass w-auto py-1" id="uploadLectureSelect">
+                            <option value="Auto" selected>⏰ Auto Schedule</option>
+                            <option value="Python">🐍 Python</option>
+                            <option value="Software Engineering">⚙️ Software Engineering</option>
+                            <option value="Java">☕ Java</option>
+                        </select>
                     </div>
+                    {% endif %}
                 </div>
-                <div class="col-6">
-                    <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
-                        <span class="text-muted small d-block mb-1">Mask Detect</span>
-                        <h6 class="fw-bold mb-0 text-glow" id="statMask"><span class="text-muted">No Face</span></h6>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-10 text-center">
-                        <span class="text-muted small d-block mb-1">Emotion</span>
-                        <h6 class="fw-bold mb-0 text-glow text-uppercase" id="statEmotion"><span class="text-muted">No Face</span></h6>
+            </div>
+
+            <!-- Upload Results Column (Right) -->
+            <div class="col-lg-6">
+                <div class="glass-card p-4 text-start">
+                    <h5 class="fw-bold mb-3 d-flex align-items-center justify-content-between">
+                        <span><i class="bi bi-patch-check-fill me-2 text-success"></i>Recognition Results</span>
+                        <span class="badge bg-secondary bg-opacity-20 text-muted small" id="uploadSummaryBadge">No Image Uploaded</span>
+                    </h5>
+
+                    <div id="uploadResultsArea">
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-file-earmark-person display-3 opacity-20 mb-2 d-block"></i>
+                            <p class="small mb-0">Upload a photo on the left to see annotated face locations and identified person cards.</p>
+                        </div>
                     </div>
                 </div>
             </div>
+
         </div>
-        
-        <!-- Session Logs Card -->
-        <div class="glass-card p-4 flex-grow-1 d-flex flex-column" style="max-height: 300px;">
-            <h5 class="fw-bold mb-3"><i class="bi bi-clock-history me-2 accent-color"></i>Session Logs</h5>
-            
-            <div class="overflow-y-auto flex-grow-1" id="sessionLogsContainer" style="font-size: 0.85rem;">
-                <div class="text-center text-muted py-4" id="noLogsPlaceholder">
-                    <i class="bi bi-qr-code-scan fs-3 d-block mb-2 opacity-30"></i>
-                    Start scanning to log check-ins.
-                </div>
-            </div>
+    </div>
+
+</div>
+
+<!-- Session Logs Container (Shared at Bottom) -->
+<div class="glass-card p-4 mt-4 text-start">
+    <h5 class="fw-bold mb-3"><i class="bi bi-clock-history me-2 accent-color"></i>Session Recognition History</h5>
+    <div class="overflow-y-auto" id="sessionLogsContainer" style="max-height: 220px; font-size: 0.85rem;">
+        <div class="text-center text-muted py-3" id="noLogsPlaceholder">
+            <i class="bi bi-qr-code-scan fs-3 d-block mb-1 opacity-30"></i>
+            No recognition logs captured in current session yet.
         </div>
     </div>
 </div>
+
+<style>
+.drop-zone-custom {
+    border-color: rgba(59, 130, 246, 0.3) !important;
+    background: rgba(15, 23, 42, 0.4);
+    transition: all 0.25s ease-in-out;
+}
+.drop-zone-custom:hover, .drop-zone-custom.drag-over {
+    border-color: var(--color-accent) !important;
+    background: rgba(59, 130, 246, 0.1) !important;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+}
+</style>
+
 {% endblock %}
 
 {% block scripts %}
@@ -146,6 +249,7 @@ async function getCameras() {
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const select = document.getElementById("cameraSelect");
+        if (!select) return;
         select.innerHTML = "";
         devices.forEach(device => {
             if (device.kind === "videoinput") {
@@ -168,7 +272,7 @@ async function startWebcam() {
 
     const select = document.getElementById("cameraSelect");
     const constraints = {
-        video: select.value ? { deviceId: { exact: select.value } } : { facingMode: "user" },
+        video: select && select.value ? { deviceId: { exact: select.value } } : { facingMode: "user" },
         audio: false
     };
     
@@ -192,20 +296,166 @@ async function startWebcam() {
 document.addEventListener("DOMContentLoaded", async () => {
     await getCameras();
     
-    toggleScanBtn.addEventListener("click", () => {
-        if (isScanning) {
-            stopScanning();
-        } else {
-            startScanning();
-        }
-    });
+    if (toggleScanBtn) {
+        toggleScanBtn.addEventListener("click", () => {
+            if (isScanning) {
+                stopScanning();
+            } else {
+                startScanning();
+            }
+        });
+    }
 
-    document.getElementById("cameraSelect").addEventListener("change", async () => {
-        if (isScanning) {
-            await startWebcam();
-        }
-    });
+    const camSel = document.getElementById("cameraSelect");
+    if (camSel) {
+        camSel.addEventListener("change", async () => {
+            if (isScanning) {
+                await startWebcam();
+            }
+        });
+    }
+
+    // Setup Drag & Drop handlers for Upload Tab
+    const dropZone = document.getElementById("dropZone");
+    if (dropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+    }
 });
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files && files.length > 0) {
+        handleFileSelect(files[0]);
+    }
+}
+
+async function handleFileSelect(file) {
+    if (!file || !file.type.startsWith('image/')) {
+        showToast("Please select a valid image file (JPG, PNG, WEBP).", "warning");
+        return;
+    }
+
+    const dropContent = document.getElementById("dropZoneContent");
+    const spinner = document.getElementById("uploadSpinner");
+    dropContent.classList.add("d-none");
+    spinner.classList.remove("d-none");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const uploadLectureElem = document.getElementById("uploadLectureSelect");
+    if (uploadLectureElem) {
+        formData.append("subject", uploadLectureElem.value);
+    }
+
+    try {
+        const response = await fetch("{{ url_for('api.recognize_image_upload') }}", {
+            method: "POST",
+            body: formData
+        });
+
+        const res = await response.json();
+        spinner.classList.add("d-none");
+        dropContent.classList.remove("d-none");
+
+        if (res.status === 'success') {
+            displayUploadResults(res);
+        } else if (res.status === 'no_face') {
+            showToast(res.message || "No faces detected in uploaded photo.", "warning");
+            document.getElementById("uploadSummaryBadge").className = "badge bg-warning bg-opacity-20 text-warning small";
+            document.getElementById("uploadSummaryBadge").textContent = "0 Faces Detected";
+            document.getElementById("uploadResultsArea").innerHTML = `
+                <div class="alert alert-warning border-0 bg-warning bg-opacity-10 text-warning text-center py-4 rounded-3">
+                    <i class="bi bi-exclamation-triangle-fill fs-2 d-block mb-2"></i>
+                    No face detected in the photo. Please upload a clear photo of a person's face.
+                </div>
+            `;
+        } else {
+            showToast("Photo processing error: " + (res.message || "Unknown error"), "danger");
+        }
+    } catch (err) {
+        console.error("Upload error", err);
+        spinner.classList.add("d-none");
+        dropContent.classList.remove("d-none");
+        showToast("Failed to upload photo for recognition.", "danger");
+    }
+}
+
+function displayUploadResults(data) {
+    const badge = document.getElementById("uploadSummaryBadge");
+    badge.className = "badge bg-success bg-opacity-20 text-success small";
+    badge.textContent = `${data.faces_matched} Matched / ${data.faces_detected} Faces Detected`;
+
+    let html = `
+        <div class="mb-3 text-center">
+            <img src="${data.annotated_image}" class="img-fluid rounded-3 border border-secondary border-opacity-20 shadow-md" style="max-height: 320px; object-fit: contain;">
+        </div>
+    `;
+
+    if (data.matches && data.matches.length > 0) {
+        html += `<h6 class="fw-bold mb-2 text-light"><i class="bi bi-people-fill me-1 text-info"></i>Identified Person Profiles (${data.matches.length}):</h6>`;
+        
+        data.matches.forEach(student => {
+            const photoUrl = student.photo_path ? `/uploads/${student.photo_path}` : '';
+            const avatarHtml = photoUrl ? 
+                `<img src="${photoUrl}" class="rounded-circle border border-2 border-success" style="width: 50px; height: 50px; object-fit: cover;">` :
+                `<div class="admin-avatar bg-success text-white border border-2 border-success fs-4" style="width: 50px; height: 50px;">${student.name.charAt(0).toUpperCase()}</div>`;
+
+            html += `
+                <div class="p-3 mb-2 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-20">
+                    <div class="d-flex align-items-center gap-3">
+                        ${avatarHtml}
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="fw-bold text-white mb-0">${student.name}</h6>
+                                <span class="badge bg-success text-dark font-monospace">${student.confidence}% Match</span>
+                            </div>
+                            <div class="small text-muted mb-1">
+                                <span class="text-info">${student.student_id}</span> • <span>${student.department}</span> • <span>${student.semester}</span>
+                            </div>
+                            <div class="extra-small text-muted">
+                                <span><i class="bi bi-envelope-fill me-1"></i>${student.email}</span> | 
+                                <span><i class="bi bi-telephone-fill me-1"></i>${student.phone}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            handleScanSuccess(student, student.attendance || 'Identified via Photo Upload', student.confidence);
+        });
+
+        speakConfirmation(`Photo analyzed. Recognized ${data.matches.length} registered person.`);
+        showToast(`Success! Recognized ${data.matches.length} face(s) in uploaded photo.`, "success");
+    } else {
+        html += `
+            <div class="alert alert-info border-0 bg-info bg-opacity-10 text-info text-center py-3 rounded-3 mb-0">
+                <i class="bi bi-info-circle-fill me-1"></i> Detected ${data.faces_detected} face(s), but none matched registered identity biometrics in database.
+            </div>
+        `;
+        showToast(`Detected ${data.faces_detected} face(s), but no registered biometrics match was found.`, "info");
+    }
+
+    document.getElementById("uploadResultsArea").innerHTML = html;
+}
 
 async function startScanning() {
     await startWebcam();
@@ -302,14 +552,18 @@ function drawBoundingBoxes(data) {
 
 function updateIdentityCard(student, confidence) {
     const badge = document.getElementById("matchConfidenceBadge");
-    badge.className = "badge bg-success bg-opacity-20 text-success fs-6";
-    badge.innerHTML = `<i class="bi bi-shield-check me-1"></i>${confidence}% Match`;
+    if (badge) {
+        badge.className = "badge bg-success bg-opacity-20 text-success fs-6";
+        badge.innerHTML = `<i class="bi bi-shield-check me-1"></i>${confidence}% Match`;
+    }
     
     const content = document.getElementById("identityContent");
+    if (!content) return;
+
     const photoUrl = student.photo_path ? `/uploads/${student.photo_path}` : '';
     const avatarHtml = photoUrl ? 
-        `<img src="${photoUrl}" class="rounded-circle border border-2 border-success shadow-sm" style="width: 70px; height: 70px; object-fit: cover;">` :
-        `<div class="admin-avatar bg-success text-white border border-2 border-success fs-2" style="width: 70px; height: 70px;">${student.name.charAt(0).toUpperCase()}</div>`;
+        `<img src="${photoUrl}" class="rounded-circle border border-2 border-success shadow-sm" style="width: 65px; height: 65px; object-fit: cover;">` :
+        `<div class="admin-avatar bg-success text-white border border-2 border-success fs-2" style="width: 65px; height: 65px;">${student.name.charAt(0).toUpperCase()}</div>`;
 
     content.innerHTML = `
         <div class="d-flex align-items-center gap-3 mb-3 p-3 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-20">
@@ -351,10 +605,10 @@ function updateIdentityCard(student, confidence) {
 }
 
 function resetFeatureStats() {
-    document.getElementById("statBlink").innerHTML = '<span class="text-muted">No Face</span>';
-    document.getElementById("statSmile").innerHTML = '<span class="text-muted">No Face</span>';
-    document.getElementById("statMask").innerHTML = '<span class="text-muted">No Face</span>';
-    document.getElementById("statEmotion").innerHTML = '<span class="text-muted">No Face</span>';
+    if (document.getElementById("statBlink")) document.getElementById("statBlink").innerHTML = '<span class="text-muted">No Face</span>';
+    if (document.getElementById("statSmile")) document.getElementById("statSmile").innerHTML = '<span class="text-muted">No Face</span>';
+    if (document.getElementById("statMask")) document.getElementById("statMask").innerHTML = '<span class="text-muted">No Face</span>';
+    if (document.getElementById("statEmotion")) document.getElementById("statEmotion").innerHTML = '<span class="text-muted">No Face</span>';
 }
 
 function updateFeatureStats(feat) {
@@ -362,32 +616,40 @@ function updateFeatureStats(feat) {
     
     // Blink
     const statBlink = document.getElementById("statBlink");
-    if (feat.blink_detected) {
-        statBlink.innerHTML = '<span class="text-warning"><i class="bi bi-eye-slash-fill me-1"></i>BLINKING</span>';
-    } else {
-        statBlink.innerHTML = '<span class="text-success"><i class="bi bi-eye-fill me-1"></i>OPEN</span>';
+    if (statBlink) {
+        if (feat.blink_detected) {
+            statBlink.innerHTML = '<span class="text-warning"><i class="bi bi-eye-slash-fill me-1"></i>BLINKING</span>';
+        } else {
+            statBlink.innerHTML = '<span class="text-success"><i class="bi bi-eye-fill me-1"></i>OPEN</span>';
+        }
     }
     
     // Smile
     const statSmile = document.getElementById("statSmile");
-    if (feat.smile_detected) {
-        statSmile.innerHTML = '<span class="text-success"><i class="bi bi-emoji-smile-fill me-1"></i>SMILING</span>';
-    } else {
-        statSmile.innerHTML = '<span class="text-muted"><i class="bi bi-emoji-neutral me-1"></i>NEUTRAL</span>';
+    if (statSmile) {
+        if (feat.smile_detected) {
+            statSmile.innerHTML = '<span class="text-success"><i class="bi bi-emoji-smile-fill me-1"></i>SMILING</span>';
+        } else {
+            statSmile.innerHTML = '<span class="text-muted"><i class="bi bi-emoji-neutral me-1"></i>NEUTRAL</span>';
+        }
     }
     
     // Mask
     const statMask = document.getElementById("statMask");
-    if (feat.mask_detected) {
-        statMask.innerHTML = '<span class="text-warning"><i class="bi bi-virus2 me-1"></i>MASK DETECTED</span>';
-    } else {
-        statMask.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>NO MASK</span>';
+    if (statMask) {
+        if (feat.mask_detected) {
+            statMask.innerHTML = '<span class="text-warning"><i class="bi bi-virus2 me-1"></i>MASK DETECTED</span>';
+        } else {
+            statMask.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>NO MASK</span>';
+        }
     }
     
     // Emotion
     const statEmotion = document.getElementById("statEmotion");
-    const clr = feat.emotion === 'happy' ? 'success' : (feat.emotion === 'surprised' ? 'warning' : 'info');
-    statEmotion.innerHTML = `<span class="text-${clr}">${feat.emotion}</span>`;
+    if (statEmotion) {
+        const clr = feat.emotion === 'happy' ? 'success' : (feat.emotion === 'surprised' ? 'warning' : 'info');
+        statEmotion.innerHTML = `<span class="text-${clr}">${feat.emotion}</span>`;
+    }
 }
 
 function speakConfirmation(text) {
@@ -404,8 +666,6 @@ function handleScanSuccess(student, attendanceMsg, confidence) {
     
     if (!loggedSessionStudents.has(studentKey)) {
         loggedSessionStudents.add(studentKey);
-        
-        speakConfirmation(`${student.name}. Identified successfully.`);
         
         const container = document.getElementById("sessionLogsContainer");
         const placeholder = document.getElementById("noLogsPlaceholder");
@@ -430,7 +690,6 @@ function handleScanSuccess(student, attendanceMsg, confidence) {
         `;
         
         container.insertBefore(card, container.firstChild);
-        showToast(`Identified ${student.name} (${student.department})`, "success");
     }
 }
 
@@ -440,7 +699,6 @@ function handleScanUnknown() {
     if (now - lastUnknownAlertTime > 10000) {
         lastUnknownAlertTime = now;
         showToast("Warning: Unrecognized face detected in camera feed", "warning");
-        speakConfirmation("Warning. Unrecognized face detected.");
     }
 }
 </script>
