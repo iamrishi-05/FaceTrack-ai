@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}Face Scanner - FaceTrack AI{% endblock %}
+{% block title %}{% if session.get('app_mode') == 'recognition' %}Live Face Finder - FaceTrack AI{% else %}Face Scanner - FaceTrack AI{% endif %}{% endblock %}
 
-{% block header_title %}Live Face recognition Terminal{% endblock %}
+{% block header_title %}{% if session.get('app_mode') == 'recognition' %}Live Face & Identity Finder{% else %}Live Face Recognition & Attendance Terminal{% endif %}{% endblock %}
 
 {% block content %}
 <div class="row g-4">
@@ -10,11 +10,17 @@
     <div class="col-lg-7">
         <div class="glass-card p-4 text-center">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <h5 class="fw-bold mb-0 text-start"><i class="bi bi-camera-reconnection me-2 accent-color text-glow"></i>Live Recognition Feed</h5>
+                <h5 class="fw-bold mb-0 text-start">
+                    {% if session.get('app_mode') == 'recognition' %}
+                        <i class="bi bi-person-bounding-box me-2 text-info text-glow"></i>Live Identity Matcher
+                    {% else %}
+                        <i class="bi bi-camera-reconnection me-2 accent-color text-glow"></i>Live Recognition Feed
+                    {% endif %}
+                </h5>
                 
                 {% if not face_rec_ready %}
                     <span class="badge bg-warning bg-opacity-20 text-warning px-3 py-1 rounded-pill small" title="C-linked library is missing. Using high-fidelity Haar Cascade fallback.">
-                        <i class="bi bi-cpu-fill me-1"></i>Camera Simulation Active
+                        <i class="bi bi-cpu-fill me-1"></i>Camera Active (Cascade Fallback)
                     </span>
                 {% else %}
                     <span class="badge bg-success bg-opacity-20 text-success px-3 py-1 rounded-pill small">
@@ -31,6 +37,7 @@
             
             <!-- Controls -->
             <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                {% if session.get('app_mode') != 'recognition' %}
                 <div class="d-flex align-items-center gap-2">
                     <label for="lectureSelect" class="form-label form-label-glass mb-0 small text-nowrap"><i class="bi bi-journal-bookmark-fill me-1 accent-color"></i>Lecture:</label>
                     <select class="form-select form-glass w-auto py-1" id="lectureSelect" title="Select scheduled lecture class">
@@ -40,6 +47,13 @@
                         <option value="Java">☕ Java (11:30 - 12:30)</option>
                     </select>
                 </div>
+                {% else %}
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-info bg-opacity-20 text-info px-3 py-2 rounded-pill small">
+                        <i class="bi bi-search me-1"></i> Mode: Identity Recognition & Person Search
+                    </span>
+                </div>
+                {% endif %}
 
                 <div class="d-flex align-items-center gap-2">
                     <select class="form-select form-glass w-auto py-1" id="cameraSelect">
@@ -51,8 +65,24 @@
         </div>
     </div>
     
-    <!-- AI Status & Recent logs column (Right) -->
+    <!-- AI Status & Identity Profile column (Right) -->
     <div class="col-lg-5 d-flex flex-column gap-4">
+        
+        <!-- Live Person Identity Profile Card -->
+        <div class="glass-card p-4 text-start" id="personIdentityCard">
+            <h5 class="fw-bold mb-3 d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-person-badge-fill me-2 text-info"></i>Recognized Person Profile</span>
+                <span class="badge bg-secondary bg-opacity-20 text-muted fs-6" id="matchConfidenceBadge">Awaiting Scan</span>
+            </h5>
+            
+            <div id="identityContent">
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-person-bounding-box display-4 opacity-25 mb-2 d-block"></i>
+                    <p class="small mb-0">Point camera at a registered person's face to display identity details, contact info, and status.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- AI Features Metrics Card -->
         <div class="glass-card p-4">
             <h5 class="fw-bold mb-3"><i class="bi bi-cpu me-2 accent-color"></i>Liveness & Feature Analysis</h5>
@@ -85,13 +115,13 @@
             </div>
         </div>
         
-        <!-- Scanner Session Scan Logs Card -->
-        <div class="glass-card p-4 flex-grow-1 d-flex flex-column" style="max-height: 400px;">
+        <!-- Session Logs Card -->
+        <div class="glass-card p-4 flex-grow-1 d-flex flex-column" style="max-height: 300px;">
             <h5 class="fw-bold mb-3"><i class="bi bi-clock-history me-2 accent-color"></i>Session Logs</h5>
             
             <div class="overflow-y-auto flex-grow-1" id="sessionLogsContainer" style="font-size: 0.85rem;">
-                <div class="text-center text-muted py-5" id="noLogsPlaceholder">
-                    <i class="bi bi-qr-code-scan fs-2 d-block mb-2 opacity-30"></i>
+                <div class="text-center text-muted py-4" id="noLogsPlaceholder">
+                    <i class="bi bi-qr-code-scan fs-3 d-block mb-2 opacity-30"></i>
                     Start scanning to log check-ins.
                 </div>
             </div>
@@ -110,10 +140,8 @@ const canvas = document.getElementById("overlayCanvas");
 const ctx = canvas.getContext("2d");
 const toggleScanBtn = document.getElementById("toggleScanBtn");
 
-// Session logged students list cache to prevent re-marking spam logs in the side panel
 const loggedSessionStudents = new Set();
 
-// Access Cameras list
 async function getCameras() {
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -132,18 +160,10 @@ async function getCameras() {
     }
 }
 
-// Start Stream
 async function startWebcam() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        const httpsUrl = 'https://' + window.location.host + window.location.pathname;
-        if (window.location.protocol !== 'https:') {
-            alert("Mobile browsers require HTTPS for camera access!\n\nPlease open this link on your phone:\n" + httpsUrl);
-            window.location.href = httpsUrl;
-            return;
-        } else {
-            showToast("Camera access API is not supported in this browser.", "danger");
-            return;
-        }
+        showToast("Camera API not supported in browser.", "danger");
+        return;
     }
 
     const select = document.getElementById("cameraSelect");
@@ -165,161 +185,187 @@ async function startWebcam() {
         };
     } catch (err) {
         console.error("Camera access failed", err);
-        if (window.location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-            const httpsUrl = 'https://' + window.location.host + window.location.pathname;
-            alert("Mobile browser blocked HTTP camera!\n\nRedirecting to HTTPS:\n" + httpsUrl);
-            window.location.href = httpsUrl;
-        } else {
-            showToast("Camera initialization failed: " + err.message, "danger");
-        }
+        showToast("Camera initialization failed: " + err.message, "danger");
     }
 }
 
-// Document Load
 document.addEventListener("DOMContentLoaded", async () => {
     await getCameras();
     
-    toggleScanBtn.addEventListener("click", async () => {
-        if (!localStream) {
-            await startWebcam();
-        }
-        
+    toggleScanBtn.addEventListener("click", () => {
         if (isScanning) {
-            stopScanner();
+            stopScanning();
         } else {
-            startScanner();
+            startScanning();
         }
     });
-    
+
     document.getElementById("cameraSelect").addEventListener("change", async () => {
-        if (localStream) {
+        if (isScanning) {
             await startWebcam();
-            if (isScanning) {
-                stopScanner();
-                startScanner();
-            }
         }
     });
 });
 
-function startScanner() {
+async function startScanning() {
+    await startWebcam();
     isScanning = true;
-    toggleScanBtn.innerHTML = '<i class="bi bi-camera-video-off-fill me-1"></i>Stop Scanner';
-    toggleScanBtn.className = "btn btn-glass-secondary px-4 py-1";
-    showToast("Face scanner initialized", "info");
+    toggleScanBtn.innerHTML = '<i class="bi bi-stop-circle-fill me-1 text-danger"></i>Stop Scanner';
+    toggleScanBtn.classList.replace("btn-glass", "btn-outline-danger");
     
-    // Poll recognizer every 400ms
-    recognitionLoop = setInterval(processFrame, 400);
+    recognitionLoop = setInterval(captureAndRecognize, 1000);
 }
 
-function stopScanner() {
+function stopScanning() {
     isScanning = false;
-    clearInterval(recognitionLoop);
-    toggleScanBtn.innerHTML = '<i class="bi bi-camera-fill me-1"></i>Start Scanner';
-    toggleScanBtn.className = "btn btn-glass px-4 py-1";
+    if (recognitionLoop) clearInterval(recognitionLoop);
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    resetIndicators();
+    toggleScanBtn.innerHTML = '<i class="bi bi-camera-fill me-1"></i>Start Scanner';
+    toggleScanBtn.classList.replace("btn-outline-danger", "btn-glass");
+    resetFeatureStats();
 }
 
-function resetIndicators() {
+async function captureAndRecognize() {
+    if (!video.videoWidth || !video.videoHeight) return;
+    
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = video.videoWidth;
+    tempCanvas.height = video.videoHeight;
+    const tempCtx = tempCanvas.getContext("2d");
+    tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+    const dataUrl = tempCanvas.toDataURL("image/jpeg", 0.7);
+    
+    const lectureElem = document.getElementById("lectureSelect");
+    const activeSubject = lectureElem ? lectureElem.value : 'Auto';
+    
+    try {
+        const response = await fetch("{{ url_for('api.recognize_attendance') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: dataUrl, subject: activeSubject })
+        });
+        
+        const res = await response.json();
+        drawBoundingBoxes(res);
+    } catch (err) {
+        console.error("Recognition request failed", err);
+    }
+}
+
+function drawBoundingBoxes(data) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (data.status !== "processed" || !data.faces || data.faces.length === 0) {
+        resetFeatureStats();
+        return;
+    }
+    
+    data.faces.forEach(face => {
+        const { top, right, bottom, left } = face.box;
+        const width = right - left;
+        const height = bottom - top;
+        
+        if (face.status === "matched") {
+            ctx.strokeStyle = "#10b981"; // Emerald green
+            ctx.lineWidth = 3;
+            ctx.strokeRect(left, top, width, height);
+            
+            ctx.fillStyle = "#10b981";
+            ctx.fillRect(left, top - 28, width, 28);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 14px sans-serif";
+            ctx.fillText(`${face.student.name} (${face.confidence}%)`, left + 8, top - 8);
+            
+            updateFeatureStats(face.features);
+            updateIdentityCard(face.student, face.confidence);
+            handleScanSuccess(face.student, face.attendance, face.confidence);
+        } else {
+            ctx.strokeStyle = "#ef4444"; // Red for unknown
+            ctx.lineWidth = 2;
+            ctx.strokeRect(left, top, width, height);
+            
+            ctx.fillStyle = "#ef4444";
+            ctx.fillRect(left, top - 24, width, 24);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "12px sans-serif";
+            ctx.fillText("Unknown Person", left + 6, top - 6);
+            
+            updateFeatureStats(face.features);
+            handleScanUnknown();
+        }
+    });
+}
+
+function updateIdentityCard(student, confidence) {
+    const badge = document.getElementById("matchConfidenceBadge");
+    badge.className = "badge bg-success bg-opacity-20 text-success fs-6";
+    badge.innerHTML = `<i class="bi bi-shield-check me-1"></i>${confidence}% Match`;
+    
+    const content = document.getElementById("identityContent");
+    const photoUrl = student.photo_path ? `/uploads/${student.photo_path}` : '';
+    const avatarHtml = photoUrl ? 
+        `<img src="${photoUrl}" class="rounded-circle border border-2 border-success shadow-sm" style="width: 70px; height: 70px; object-fit: cover;">` :
+        `<div class="admin-avatar bg-success text-white border border-2 border-success fs-2" style="width: 70px; height: 70px;">${student.name.charAt(0).toUpperCase()}</div>`;
+
+    content.innerHTML = `
+        <div class="d-flex align-items-center gap-3 mb-3 p-3 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-20">
+            ${avatarHtml}
+            <div>
+                <h5 class="fw-bold text-white mb-0">${student.name}</h5>
+                <span class="badge bg-primary bg-opacity-20 text-primary extra-small me-1">${student.student_id}</span>
+                <span class="badge bg-info bg-opacity-20 text-info extra-small">${student.department}</span>
+            </div>
+        </div>
+
+        <div class="row g-2 extra-small">
+            <div class="col-6">
+                <div class="p-2 rounded bg-secondary bg-opacity-10">
+                    <span class="text-muted d-block">Roll Number</span>
+                    <strong class="text-light">${student.roll_number || 'N/A'}</strong>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="p-2 rounded bg-secondary bg-opacity-10">
+                    <span class="text-muted d-block">Semester</span>
+                    <strong class="text-light">${student.semester || 'N/A'}</strong>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="p-2 rounded bg-secondary bg-opacity-10">
+                    <span class="text-muted d-block"><i class="bi bi-envelope-fill me-1"></i>Email Address</span>
+                    <strong class="text-light">${student.email || 'N/A'}</strong>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="p-2 rounded bg-secondary bg-opacity-10">
+                    <span class="text-muted d-block"><i class="bi bi-telephone-fill me-1"></i>Phone Contact</span>
+                    <strong class="text-light">${student.phone || 'N/A'}</strong>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function resetFeatureStats() {
     document.getElementById("statBlink").innerHTML = '<span class="text-muted">No Face</span>';
     document.getElementById("statSmile").innerHTML = '<span class="text-muted">No Face</span>';
     document.getElementById("statMask").innerHTML = '<span class="text-muted">No Face</span>';
     document.getElementById("statEmotion").innerHTML = '<span class="text-muted">No Face</span>';
 }
 
-function processFrame() {
-    if (!isScanning) return;
-    
-    // Draw current frame to canvas
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const frameData = canvas.toDataURL("image/jpeg", 0.7);
-    const selectedSubject = document.getElementById("lectureSelect").value;
-    
-    // Clear canvas prior to drawing bounding boxes
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    fetch("{{ url_for('api.recognize_attendance') }}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: frameData, subject: selectedSubject })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'processed' && data.faces.length > 0) {
-            drawFaceBoxes(data.faces);
-            updateIndicators(data.faces[0].features);
-            
-            // Check for matched checkin
-            data.faces.forEach(face => {
-                if (face.status === 'matched') {
-                    handleScanSuccess(face.student, face.attendance, face.confidence);
-                } else {
-                    handleScanUnknown();
-                }
-            });
-        } else {
-            resetIndicators();
-        }
-    })
-    .catch(err => {
-        console.error(err);
-    });
-}
-
-function drawFaceBoxes(faces) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    faces.forEach(face => {
-        const box = face.box;
-        const x = box.left;
-        const y = box.top;
-        const w = box.right - box.left;
-        const h = box.bottom - box.top;
-        
-        // Define color based on state
-        const isMatched = face.status === 'matched';
-        const color = isMatched ? '#10b981' : '#ef4444'; // Green / Red
-        
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
-        
-        // Draw corners border only for clean HUD appearance
-        const len = 15;
-        // Top Left
-        ctx.beginPath(); ctx.moveTo(x, y + len); ctx.lineTo(x, y); ctx.lineTo(x + len, y); ctx.stroke();
-        // Top Right
-        ctx.beginPath(); ctx.moveTo(x + w - len, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + len); ctx.stroke();
-        // Bottom Left
-        ctx.beginPath(); ctx.moveTo(x, y + h - len); ctx.lineTo(x, y + h); ctx.lineTo(x + len, y + h); ctx.stroke();
-        // Bottom Right
-        ctx.beginPath(); ctx.moveTo(x + w - len, y + h); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w, y + h - len); ctx.stroke();
-        
-        // Bounding box fill overlay
-        ctx.fillStyle = isMatched ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
-        ctx.fillRect(x, y, w, h);
-        
-        // Text details above box - flipped horizontally to cancel out CSS scaleX(-1) mirror effect
-        ctx.save();
-        ctx.fillStyle = color;
-        ctx.font = '600 13px Outfit, sans-serif';
-        const label = isMatched ? `${face.student.name} [${face.student.subject}] (${face.confidence}%)` : "UNKNOWN VISITOR";
-        ctx.translate(x + w - 4, y - 8);
-        ctx.scale(-1, 1);
-        ctx.fillText(label.toUpperCase(), 0, 0);
-        ctx.restore();
-    });
-}
-
-function updateIndicators(feat) {
+function updateFeatureStats(feat) {
     if (!feat) return;
     
     // Blink
     const statBlink = document.getElementById("statBlink");
     if (feat.blink_detected) {
-        statBlink.innerHTML = '<span class="text-success"><i class="bi bi-eye-fill me-1"></i>BLINK DETECTED</span>';
+        statBlink.innerHTML = '<span class="text-warning"><i class="bi bi-eye-slash-fill me-1"></i>BLINKING</span>';
     } else {
-        statBlink.innerHTML = '<span class="text-info"><i class="bi bi-eye me-1"></i>EYES OPEN</span>';
+        statBlink.innerHTML = '<span class="text-success"><i class="bi bi-eye-fill me-1"></i>OPEN</span>';
     }
     
     // Smile
@@ -356,14 +402,11 @@ function speakConfirmation(text) {
 function handleScanSuccess(student, attendanceMsg, confidence) {
     const studentKey = `${student.student_id}_${student.subject}_${new Date().toDateString()}`;
     
-    // Play audio feedback and update UI if not logged in this UI session
     if (!loggedSessionStudents.has(studentKey)) {
         loggedSessionStudents.add(studentKey);
         
-        // programmatic audio confirm
-        speakConfirmation(`${student.name}. ${student.subject} checked in.`);
+        speakConfirmation(`${student.name}. Identified successfully.`);
         
-        // Add record to dynamic side panel
         const container = document.getElementById("sessionLogsContainer");
         const placeholder = document.getElementById("noLogsPlaceholder");
         if (placeholder) placeholder.remove();
@@ -377,29 +420,27 @@ function handleScanSuccess(student, attendanceMsg, confidence) {
                 </div>
                 <div>
                     <div class="fw-bold text-white mb-0">${student.name}</div>
-                    <small class="text-muted font-monospace">${student.student_id} • <span class="accent-color">${student.subject}</span></small>
+                    <small class="text-muted font-monospace">${student.student_id} • <span class="accent-color">${student.department}</span></small>
                 </div>
             </div>
             <div class="text-end">
-                <span class="badge bg-success bg-opacity-20 text-success rounded-pill font-monospace small mb-1 d-block">${attendanceMsg.split(' ')[0]}</span>
+                <span class="badge bg-success bg-opacity-20 text-success rounded-pill font-monospace small mb-1 d-block">${confidence}%</span>
                 <small class="text-muted font-monospace" style="font-size: 0.75rem;">${new Date().toLocaleTimeString()}</small>
             </div>
         `;
         
-        // Insert at top of session logs container
         container.insertBefore(card, container.firstChild);
-        showToast(`Attendance marked for ${student.name} (${student.subject})`, "success");
+        showToast(`Identified ${student.name} (${student.department})`, "success");
     }
 }
 
 let lastUnknownAlertTime = 0;
 function handleScanUnknown() {
     const now = Date.now();
-    // Throttle warnings to once every 10 seconds to avoid spamming
     if (now - lastUnknownAlertTime > 10000) {
         lastUnknownAlertTime = now;
-        showToast("Warning: Unknown visitor detected in scan area", "warning");
-        speakConfirmation("Warning. Unknown person detected.");
+        showToast("Warning: Unrecognized face detected in camera feed", "warning");
+        speakConfirmation("Warning. Unrecognized face detected.");
     }
 }
 </script>

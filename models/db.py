@@ -129,24 +129,6 @@ def init_db():
             ''', ("admin", default_hashed_pwd, "admin@facetrack.ai", "System Administrator"))
             print("[DB] Default admin created (admin / adminpassword)")
             
-        # Auto-seed student records if table is empty
-        cursor.execute("SELECT COUNT(*) as count FROM students")
-        if cursor.fetchone()['count'] == 0:
-            seed_file = os.path.join(os.path.dirname(__file__), 'students_seed.json')
-            if os.path.exists(seed_file):
-                import json
-                try:
-                    with open(seed_file, 'r', encoding='utf-8') as f:
-                        students_data = json.load(f)
-                    for s in students_data:
-                        cursor.execute('''
-                            INSERT OR IGNORE INTO students (student_id, name, roll_number, email, phone, department, semester)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                        ''', (s['student_id'], s['name'], s['roll_number'], s['email'], s.get('phone'), s['department'], s['semester']))
-                    print(f"[DB] Auto-seeded {len(students_data)} student records into database.")
-                except Exception as e:
-                    print(f"[DB] Failed to auto-seed students: {e}")
-                
         # Insert Default Settings if not exists
         default_settings = {
             'tolerance': str(Config.DEFAULT_TOLERANCE),

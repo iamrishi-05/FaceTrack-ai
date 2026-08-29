@@ -3,45 +3,194 @@
 {% block title %}Sign In - FaceTrack AI{% endblock %}
 
 {% block auth_content %}
-<div class="d-flex align-items-center justify-content-center min-vh-100 px-3">
-    <div class="login-container glass-card p-4 p-md-5 rounded-4 text-center">
+<div class="d-flex align-items-center justify-content-center min-vh-100 px-3 py-4">
+    <div class="login-container glass-card p-4 p-md-5 rounded-4 text-center shadow-lg" style="max-width: 520px; width: 100%;">
+        
         <!-- Logo Header -->
         <div class="mb-4">
             <div class="d-inline-flex align-items-center justify-content-center bg-info bg-opacity-10 p-3 rounded-circle border border-info border-opacity-25 pulse-glow-effect mb-3" style="width: 72px; height: 72px;">
                 <i class="bi bi-camera-reconnection accent-color text-glow fs-1"></i>
             </div>
             <h2 class="fw-bold mb-1">FaceTrack AI</h2>
-            <p class="text-muted small">Smart Attendance Management System</p>
+            <p class="text-muted small">Face Recognition & Attendance Intelligence Platform</p>
         </div>
 
-        <!-- Login Form -->
-        <form action="{{ url_for('auth.login') }}" method="POST" class="text-start">
-            <div class="mb-3">
-                <label for="username" class="form-label form-label-glass">Username</label>
-                <div class="input-group">
-                    <span class="input-group-text form-glass border-end-0" style="background: rgba(255, 255, 255, 0.01);"><i class="bi bi-person-fill text-muted"></i></span>
-                    <input type="text" class="form-control form-glass border-start-0" id="username" name="username" placeholder="Enter username" required autocomplete="username">
+        <!-- Purpose Selection Cards -->
+        <div class="mb-4 text-start">
+            <label class="form-label form-label-glass fw-bold small text-uppercase tracking-wider mb-2">1. Select Purpose of Use</label>
+            <div class="row g-2">
+                <div class="col-6">
+                    <div class="purpose-card glass-card p-3 rounded-3 text-center cursor-pointer active" id="purposeAttendanceCard" onclick="selectPurpose('attendance')">
+                        <i class="bi bi-calendar-check-fill fs-3 text-primary d-block mb-1"></i>
+                        <span class="fw-bold fs-6 d-block text-light">Attendance</span>
+                        <span class="text-muted extra-small">Mark & log registers</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="purpose-card glass-card p-3 rounded-3 text-center cursor-pointer" id="purposeRecognitionCard" onclick="selectPurpose('recognition')">
+                        <i class="bi bi-person-bounding-box fs-3 text-info d-block mb-1"></i>
+                        <span class="fw-bold fs-6 d-block text-light">People Finder</span>
+                        <span class="text-muted extra-small">Identify & scan profiles</span>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label for="password" class="form-label form-label-glass mb-0">Password</label>
-                    <a href="{{ url_for('auth.forgot_password') }}" class="text-glow accent-color text-decoration-none small">Forgot Password?</a>
-                </div>
-                <div class="input-group">
-                    <span class="input-group-text form-glass border-end-0" style="background: rgba(255, 255, 255, 0.01);"><i class="bi bi-lock-fill text-muted"></i></span>
-                    <input type="password" class="form-control form-glass border-start-0" id="password" name="password" placeholder="Enter password" required autocomplete="current-password">
-                </div>
+        <label class="form-label form-label-glass fw-bold small text-uppercase tracking-wider mb-2 text-start d-block">2. Choose Login Method</label>
+
+        <!-- Authentication Tabs -->
+        <ul class="nav nav-pills nav-justified mb-3 p-1 glass-card rounded-3" id="authTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active py-2 small fw-bold" id="google-tab" data-bs-toggle="pill" data-bs-target="#google-pane" type="button" role="tab"><i class="bi bi-google me-1"></i> Google</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link py-2 small fw-bold" id="phone-tab" data-bs-toggle="pill" data-bs-target="#phone-pane" type="button" role="tab"><i class="bi bi-phone-fill me-1"></i> Phone</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link py-2 small fw-bold" id="email-tab" data-bs-toggle="pill" data-bs-target="#email-pane" type="button" role="tab"><i class="bi bi-key-fill me-1"></i> Admin</button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content text-start" id="authTabContent">
+            
+            <!-- 1. Google OAuth Tab -->
+            <div class="tab-pane fade show active" id="google-pane" role="tabpanel">
+                <form action="{{ url_for('auth.google_login') }}" method="POST" id="googleForm">
+                    <input type="hidden" name="purpose" class="purpose-input" value="attendance">
+                    
+                    <div class="mb-3">
+                        <label for="google_email" class="form-label form-label-glass">Google Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text form-glass border-end-0" style="background: rgba(255,255,255,0.02);"><i class="bi bi-envelope-at-fill text-danger"></i></span>
+                            <input type="email" class="form-control form-glass border-start-0" id="google_email" name="google_email" placeholder="user@gmail.com" required value="admin@gmail.com">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="google_name" class="form-label form-label-glass">Full Name (Optional)</label>
+                        <input type="text" class="form-control form-glass" id="google_name" name="google_name" placeholder="Rushikesh Jadhav">
+                    </div>
+
+                    <button type="submit" class="btn btn-light text-dark fw-bold w-100 py-3 d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-sm hover-lift">
+                        <svg width="18" height="18" viewBox="0 0 24 24">
+                            <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+                            <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+                            <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.8s.7 5.1 1.9 7.5l3.7-2.9z"/>
+                            <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/>
+                        </svg>
+                        Sign in with Google
+                    </button>
+                </form>
             </div>
 
-            <div class="mb-4 form-check text-start">
-                <input type="checkbox" class="form-check-input form-glass border-0 bg-secondary" id="remember" name="remember" style="width: 18px; height: 18px;">
-                <label class="form-check-label text-muted small ms-2" for="remember" style="padding-top: 2px;">Keep me signed in</label>
+            <!-- 2. Phone OTP Tab -->
+            <div class="tab-pane fade" id="phone-pane" role="tabpanel">
+                <form action="{{ url_for('auth.phone_login') }}" method="POST" id="phoneForm">
+                    <input type="hidden" name="purpose" class="purpose-input" value="attendance">
+                    
+                    <div class="mb-3">
+                        <label for="phone_number" class="form-label form-label-glass">Phone Number</label>
+                        <div class="input-group">
+                            <span class="input-group-text form-glass border-end-0 text-muted">+91</span>
+                            <input type="tel" class="form-control form-glass border-start-0" id="phone_number" name="phone_number" placeholder="9876543210" required value="9876543210">
+                            <button type="button" class="btn btn-outline-info btn-sm px-3" onclick="sendDemoOTP()">Send OTP</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="otp_code" class="form-label form-label-glass mb-0">6-Digit Verification Code</label>
+                            <span class="badge bg-success bg-opacity-20 text-success extra-small">Demo OTP: 123456</span>
+                        </div>
+                        <input type="text" class="form-control form-glass font-monospace text-center fs-5 letter-spacing-2" id="otp_code" name="otp_code" placeholder="123456" maxlength="6" required value="123456">
+                    </div>
+
+                    <button type="submit" class="btn btn-glass w-100 py-3 fw-bold">Verify & Sign In</button>
+                </form>
             </div>
 
-            <button type="submit" class="btn btn-glass w-100 py-3">Sign In</button>
-        </form>
+            <!-- 3. Email & Password Admin Tab -->
+            <div class="tab-pane fade" id="email-pane" role="tabpanel">
+                <form action="{{ url_for('auth.login') }}" method="POST" id="emailForm">
+                    <input type="hidden" name="purpose" class="purpose-input" value="attendance">
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label form-label-glass">Username / Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text form-glass border-end-0" style="background: rgba(255, 255, 255, 0.01);"><i class="bi bi-person-fill text-muted"></i></span>
+                            <input type="text" class="form-control form-glass border-start-0" id="username" name="username" placeholder="admin" required value="admin" autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="password" class="form-label form-label-glass mb-0">Password</label>
+                            <a href="{{ url_for('auth.forgot_password') }}" class="text-glow accent-color text-decoration-none small">Forgot?</a>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text form-glass border-end-0" style="background: rgba(255, 255, 255, 0.01);"><i class="bi bi-lock-fill text-muted"></i></span>
+                            <input type="password" class="form-control form-glass border-start-0" id="password" name="password" placeholder="••••••••" required value="adminpassword" autocomplete="current-password">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input form-glass border-0 bg-secondary" id="remember" name="remember" style="width: 18px; height: 18px;">
+                        <label class="form-check-label text-muted small ms-2" for="remember">Keep me signed in</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-glass w-100 py-3 fw-bold">Sign In to Dashboard</button>
+                </form>
+            </div>
+
+        </div>
+
     </div>
 </div>
+
+<style>
+.purpose-card {
+    transition: all 0.25s ease-in-out;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.purpose-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+.purpose-card.active {
+    border-color: var(--color-accent) !important;
+    background: rgba(59, 130, 246, 0.15) !important;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+}
+.extra-small {
+    font-size: 0.72rem;
+}
+.letter-spacing-2 {
+    letter-spacing: 4px;
+}
+.hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2) !important;
+}
+</style>
+
+<script>
+function selectPurpose(mode) {
+    document.querySelectorAll('.purpose-card').forEach(card => card.classList.remove('active'));
+    if (mode === 'attendance') {
+        document.getElementById('purposeAttendanceCard').classList.add('active');
+    } else {
+        document.getElementById('purposeRecognitionCard').classList.add('active');
+    }
+    document.querySelectorAll('.purpose-input').forEach(input => input.value = mode);
+}
+
+function sendDemoOTP() {
+    showToast("OTP code sent to phone number! Use demo code: 123456", "info");
+    document.getElementById('otp_code').value = "123456";
+}
+</script>
 {% endblock %}

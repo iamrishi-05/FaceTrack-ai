@@ -220,6 +220,9 @@ def process_attendance_mark(student_id, confidence, analysis, subject=None):
         'name': student['name'],
         'roll_number': student['roll_number'],
         'department': student['department'],
+        'semester': student['semester'],
+        'email': student.get('email', 'N/A'),
+        'phone': student.get('phone', 'N/A'),
         'photo_path': student['photo_path'],
         'subject': subject
     }

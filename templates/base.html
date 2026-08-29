@@ -76,20 +76,35 @@
                 </li>
                 <li class="menu-item {% if active_page == 'students' %}active{% endif %}">
                     <a href="{{ url_for('students.index') }}" class="menu-link">
+                        {% if session.get('app_mode') == 'recognition' %}
+                        <i class="bi bi-person-lines-fill"></i>
+                        <span>People Directory</span>
+                        {% else %}
                         <i class="bi bi-people-fill"></i>
                         <span>Students</span>
+                        {% endif %}
                     </a>
                 </li>
                 <li class="menu-item {% if active_page == 'scanner' %}active{% endif %}">
                     <a href="{{ url_for('attendance.scanner') }}" class="menu-link">
+                        {% if session.get('app_mode') == 'recognition' %}
+                        <i class="bi bi-person-bounding-box"></i>
+                        <span>Face Recognition</span>
+                        {% else %}
                         <i class="bi bi-qr-code-scan"></i>
                         <span>Face Scanner</span>
+                        {% endif %}
                     </a>
                 </li>
                 <li class="menu-item {% if active_page == 'history' %}active{% endif %}">
                     <a href="{{ url_for('attendance.history') }}" class="menu-link">
+                        {% if session.get('app_mode') == 'recognition' %}
+                        <i class="bi bi-clock-history"></i>
+                        <span>Recognition Logs</span>
+                        {% else %}
                         <i class="bi bi-calendar2-check-fill"></i>
                         <span>Attendance Logs</span>
+                        {% endif %}
                     </a>
                 </li>
                 <li class="menu-item {% if active_page == 'analytics' %}active{% endif %}">
@@ -127,7 +142,7 @@
                 <li class="menu-item {% if active_page == 'history' %}active{% endif %}">
                     <a href="{{ url_for('attendance.history') }}" class="menu-link">
                         <i class="bi bi-calendar2-check-fill"></i>
-                        <span>My Attendance</span>
+                        <span>My Records</span>
                     </a>
                 </li>
                 {% endif %}
@@ -135,7 +150,15 @@
             
             <div class="sidebar-footer">
                 <div>Logged in as: <strong>{{ session.get('username') }}</strong></div>
-                <div class="mt-1 small opacity-50">{% if session.get('admin_id') %}Administrator{% else %}Student Account{% endif %}</div>
+                <div class="mt-1 small opacity-50">
+                    {% if session.get('auth_provider') == 'google' %}
+                        <span class="badge bg-danger bg-opacity-20 text-danger small"><i class="bi bi-google"></i> Google User</span>
+                    {% elif session.get('auth_provider') == 'phone' %}
+                        <span class="badge bg-success bg-opacity-20 text-success small"><i class="bi bi-phone"></i> Phone User</span>
+                    {% else %}
+                        {% if session.get('admin_id') %}Administrator{% else %}Student Account{% endif %}
+                    {% endif %}
+                </div>
             </div>
         </aside>
         
@@ -154,6 +177,40 @@
                 </div>
                 
                 <div class="topbar-actions">
+                    <!-- Mode Switcher Dropdown -->
+                    <div class="dropdown me-2">
+                        <button class="btn btn-glass-secondary border border-info border-opacity-25 dropdown-toggle d-flex align-items-center gap-2 py-1 px-3 rounded-pill" type="button" id="modeSwitchDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            {% if session.get('app_mode') == 'recognition' %}
+                                <i class="bi bi-person-bounding-box text-info fs-6"></i>
+                                <span class="small fw-bold text-info">People Finder</span>
+                            {% else %}
+                                <i class="bi bi-calendar-check-fill text-primary fs-6"></i>
+                                <span class="small fw-bold text-primary">Attendance</span>
+                            {% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end glass-card border-0 shadow-lg p-2" aria-labelledby="modeSwitchDropdown" style="background: rgba(15, 23, 42, 0.95); min-width: 260px;">
+                            <li><h6 class="dropdown-header text-uppercase extra-small text-muted">Select System Mode</h6></li>
+                            <li>
+                                <a class="dropdown-item rounded py-2 d-flex align-items-center gap-2 {% if session.get('app_mode') == 'attendance' or not session.get('app_mode') %}active bg-primary bg-opacity-20 text-primary{% else %}text-white{% endif %}" href="{{ url_for('auth.switch_mode', mode='attendance') }}">
+                                    <i class="bi bi-calendar-check-fill text-primary fs-5"></i>
+                                    <div>
+                                        <div class="fw-bold small">Attendance Mode</div>
+                                        <div class="extra-small text-muted">Mark & log attendance registers</div>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item rounded py-2 d-flex align-items-center gap-2 {% if session.get('app_mode') == 'recognition' %}active bg-info bg-opacity-20 text-info{% else %}text-white{% endif %}" href="{{ url_for('auth.switch_mode', mode='recognition') }}">
+                                    <i class="bi bi-person-bounding-box text-info fs-5"></i>
+                                    <div>
+                                        <div class="fw-bold small">People Recognition Mode</div>
+                                        <div class="extra-small text-muted">Live face matching & identity card</div>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
                     <!-- Light/Dark Theme Switcher -->
                     <button class="theme-toggle-btn" id="themeToggleBtn" type="button" title="Switch Theme">
                         <i class="bi bi-moon-fill" id="themeIcon"></i>
