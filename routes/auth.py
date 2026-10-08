@@ -1,157 +1,82 @@
-from flask import Blueprint, render_template, redirect, url_for, request, session, flash, jsonify
-from models.admin import verify_admin
-from models.student import verify_student
+from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify, flash
+from models.user import get_or_create_user
 from utils.logger import log_event
 
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    # If already logged in, redirect to appropriate page
-    if 'admin_id' in session:
-        return redirect(url_for('dashboard.index'))
-    if 'student_id' in session:
-        return redirect(url_for('students.profile', student_id=session['student_id']))
+    """Renders Google Sign-In page or processes email sign-in."""
+    if session.get('user_id'):
+        return redirect(url_for('tracker.live_tracker'))
         
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '').strip()
-        purpose = request.form.get('purpose', 'attendance').strip()
-        remember = request.form.get('remember') == 'on'
+        email = request.form.get('email')
+        name = request.form.get('name')
         
-        # Store selected app mode / purpose in session
-        session['app_mode'] = purpose if purpose in ['attendance', 'recognition'] else 'attendance'
-        
-        if not username or not password:
-            flash("Please enter both username and password.", "error")
-            return render_template('auth/login.html')
+        if not email or not email.strip():
+            flash('Google Email ID is required.', 'error')
+            return redirect(url_for('auth.login'))
             
-        # 1. Attempt Administrator Authentication
-        admin = verify_admin(username, password)
-        if admin:
-            session['admin_id'] = admin['id']
-            session['username'] = admin['username']
-            session['name'] = admin['name']
-            session['role'] = 'admin'
-            session['auth_provider'] = 'email'
-            
-            session.permanent = remember
-                
-            log_event("INFO", "Authentication", f"Admin user '{username}' logged in (Mode: {session['app_mode']}).")
-            mode_title = "Smart Attendance" if session['app_mode'] == 'attendance' else "People Recognition"
-            flash(f"Welcome back, {admin['name']}! Mode set to {mode_title}.", "success")
-            
-            next_url = request.args.get('next')
-            if next_url and next_url.startswith('/'):
-                return redirect(next_url)
-            return redirect(url_for('dashboard.index'))
-
-        # 2. Attempt Student Authentication
-        student = verify_student(username, password)
-        if student:
-            parts = student['name'].strip().split()
-            middle_name = parts[1] if len(parts) >= 2 else (parts[0] if parts else student['name'])
-            session['student_id'] = student['student_id']
-            session['username'] = middle_name
-            session['name'] = student['name']
-            session['role'] = 'student'
-            session['auth_provider'] = 'email'
-            
-            session.permanent = remember
-                
-            log_event("INFO", "Authentication", f"Student '{student['name']}' logged in (Mode: {session['app_mode']}).")
-            flash(f"Welcome back, {student['name']}!", "success")
-            
-            next_url = request.args.get('next')
-            if next_url and next_url.startswith('/'):
-                return redirect(next_url)
-            return redirect(url_for('students.profile', student_id=student['student_id']))
-
-        log_event("WARNING", "Authentication", f"Failed login attempt for user '{username}'.")
-        flash("Invalid username or password.", "error")
+        user = get_or_create_user(email=email.strip(), name=name)
+        if user:
+            session['user_id'] = user['id']
+            session['user_email'] = user['email']
+            session['user_name'] = user['name']
+            session['user_avatar'] = user.get('avatar_url') or ''
+            flash(f"Welcome back, {user['name']}!", 'success')
+            return redirect(url_for('tracker.live_tracker'))
+        else:
+            flash('Failed to sign in. Please try again.', 'error')
             
     return render_template('auth/login.html')
 
-
 @auth_bp.route('/login/google', methods=['POST'])
-def google_login():
-    """Handles Google Email Sign-In authentication."""
-    google_email = request.form.get('google_email', '').strip()
-    google_name = request.form.get('google_name', '').strip() or google_email.split('@')[0]
-    purpose = request.form.get('purpose', 'attendance').strip()
-    
-    if not google_email:
-        flash("Google Sign-In failed: Email address required.", "error")
-        return redirect(url_for('auth.login'))
+def google_auth():
+    """
+    Handles Google Sign-In token or OAuth payload sent from client side.
+    Creates or updates the user account and stores session.
+    """
+    try:
+        data = request.get_json() or {}
+        email = data.get('email')
+        name = data.get('name')
+        google_id = data.get('google_id')
+        avatar_url = data.get('avatar_url')
         
-    session['admin_id'] = 1  # Default admin session
-    session['username'] = google_email
-    session['name'] = google_name if google_name else "Google User"
-    session['role'] = 'admin'
-    session['auth_provider'] = 'google'
-    session['app_mode'] = purpose if purpose in ['attendance', 'recognition'] else 'attendance'
-    
-    log_event("INFO", "Authentication", f"User logged in via Google: {google_email} (Mode: {session['app_mode']}).")
-    mode_title = "Smart Attendance" if session['app_mode'] == 'attendance' else "People Recognition"
-    flash(f"Signed in via Google as {session['name']}! Mode set to {mode_title}.", "success")
-    return redirect(url_for('dashboard.index'))
-
-
-@auth_bp.route('/login/phone', methods=['POST'])
-def phone_login():
-    """Handles Phone Number + OTP verification authentication."""
-    phone_number = request.form.get('phone_number', '').strip()
-    otp_code = request.form.get('otp_code', '').strip()
-    purpose = request.form.get('purpose', 'attendance').strip()
-    
-    if not phone_number or not otp_code:
-        flash("Please enter phone number and OTP code.", "error")
-        return redirect(url_for('auth.login'))
+        if not email:
+            return jsonify({'success': False, 'message': 'Google email is required'}), 400
+            
+        user = get_or_create_user(
+            email=email,
+            name=name,
+            google_id=google_id,
+            avatar_url=avatar_url
+        )
         
-    # Accept any 6-digit OTP or standard 123456
-    if len(otp_code) != 6 or not otp_code.isdigit():
-        flash("Invalid OTP code. Please enter a valid 6-digit code.", "error")
-        return redirect(url_for('auth.login'))
+        if not user:
+            return jsonify({'success': False, 'message': 'Account creation failed'}), 500
+            
+        session['user_id'] = user['id']
+        session['user_email'] = user['email']
+        session['user_name'] = user['name']
+        session['user_avatar'] = user.get('avatar_url') or ''
         
-    session['admin_id'] = 1
-    session['username'] = phone_number
-    session['name'] = f"User ({phone_number[-4:]})"
-    session['role'] = 'admin'
-    session['auth_provider'] = 'phone'
-    session['app_mode'] = purpose if purpose in ['attendance', 'recognition'] else 'attendance'
-    
-    log_event("INFO", "Authentication", f"User logged in via Phone OTP: {phone_number} (Mode: {session['app_mode']}).")
-    mode_title = "Smart Attendance" if session['app_mode'] == 'attendance' else "People Recognition"
-    flash(f"Verified & signed in via Phone ({phone_number})! Mode set to {mode_title}.", "success")
-    return redirect(url_for('dashboard.index'))
-
-
-@auth_bp.route('/auth/switch_mode/<mode>')
-def switch_mode(mode):
-    """Allows dynamic switching between Attendance and People Recognition modes."""
-    if mode in ['attendance', 'recognition']:
-        session['app_mode'] = mode
-        mode_title = "Smart Attendance System" if mode == 'attendance' else "People Recognition & Identifier"
-        log_event("INFO", "System", f"Switched app mode to: {mode}")
-        flash(f"Switched system mode to {mode_title}.", "info")
-    return redirect(request.referrer or url_for('dashboard.index'))
-
+        log_event("INFO", "Auth", f"Google Authentication successful for {email}")
+        return jsonify({
+            'success': True,
+            'message': f'Welcome, {user["name"]}!',
+            'redirect': url_for('tracker.live_tracker')
+        })
+    except Exception as e:
+        log_event("ERROR", "Auth", f"Google authentication failed: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @auth_bp.route('/logout')
 def logout():
-    username = session.get('username', 'Unknown')
+    """Clears user session and logs out."""
+    email = session.get('user_email', 'User')
     session.clear()
-    log_event("INFO", "Authentication", f"User '{username}' logged out.")
-    flash("You have been logged out successfully.", "success")
+    log_event("INFO", "Auth", f"User logged out: {email}")
+    flash('You have been logged out successfully.', 'info')
     return redirect(url_for('auth.login'))
-
-
-@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
-def forgot_password():
-    if request.method == 'POST':
-        email = request.form.get('email', '').strip()
-        log_event("INFO", "Authentication", f"Password recovery requested for: {email}")
-        flash("Instructions to recover credentials have been logged. Default login: admin / adminpassword", "info")
-        return render_template('auth/login.html', recovery_instructions=True)
-        
-    return render_template('auth/forgot_password.html')

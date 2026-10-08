@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block title %}Live Target Tracker - FaceTrack AI{% endblock %}
+{% block header_title %}🎯 Live Face Scanner & Target Tracker{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Stat Card 1 -->
+    <div class="col-6 col-md-3">
+        <div class="glass-card stat-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted extra-small text-uppercase tracking-wider fw-semibold">Target Profiles</span>
+                <i class="bi bi-person-bounding-box text-cyan fs-4"></i>
+            </div>
+            <div class="stat-value h3 mb-0 text-cyan fw-bold">{{ stats.total_targets }}</div>
+            <div class="extra-small text-muted mt-1">Registered targets in DB</div>
+        </div>
+    </div>
+    
+    <!-- Stat Card 2 -->
+    <div class="col-6 col-md-3">
+        <div class="glass-card stat-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted extra-small text-uppercase tracking-wider fw-semibold">Spotted Today</span>
+                <i class="bi bi-eye-fill text-emerald fs-4"></i>
+            </div>
+            <div class="stat-value h3 mb-0 text-emerald fw-bold">{{ stats.targets_spotted_today }}</div>
+            <div class="extra-small text-muted mt-1">Unique targets detected</div>
+        </div>
+    </div>
+    
+    <!-- Stat Card 3 -->
+    <div class="col-6 col-md-3">
+        <div class="glass-card stat-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted extra-small text-uppercase tracking-wider fw-semibold">Total Logs Today</span>
+                <i class="bi bi-shield-shaded text-purple fs-4"></i>
+            </div>
+            <div class="stat-value h3 mb-0 text-purple fw-bold">{{ stats.today_detections }}</div>
+            <div class="extra-small text-muted mt-1">Detection events logged</div>
+        </div>
+    </div>
+    
+    <!-- Stat Card 4 -->
+    <div class="col-6 col-md-3">
+        <div class="glass-card stat-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted extra-small text-uppercase tracking-wider fw-semibold">System Status</span>
+                <span class="badge bg-emerald-subtle text-emerald rounded-pill px-2 py-1 extra-small" id="scannerStatusBadge">Ready</span>
+            </div>
+            <div class="stat-value h6 mb-0 theme-text fw-semibold" id="scannerStatusText">Camera Inactive</div>
+            <div class="extra-small text-muted mt-1">Click Start Scanner below</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Camera Viewport Column -->
+    <div class="col-lg-8">
+        <div class="glass-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="status-pulse-dot bg-emerald" id="cameraPulseDot" style="display:none;"></span>
+                    <h5 class="mb-0 fw-bold theme-text">Live Camera Tracking Feed</h5>
+                </div>
+                
+                <div class="d-flex align-items-center gap-2">
+                    <select class="form-select form-select-sm glass-input" id="cameraSelect" style="width: auto;">
+                        <option value="">Detecting cameras...</option>
+                    </select>
+                    
+                    <button class="btn btn-emerald btn-sm rounded-pill px-3 fw-bold" id="startBtn">
+                        <i class="bi bi-camera-video-fill me-1"></i> Start Scanner
+                    </button>
+                    <button class="btn btn-danger btn-sm rounded-pill px-3 fw-bold d-none" id="stopBtn">
+                        <i class="bi bi-stop-circle-fill me-1"></i> Stop Scanner
+                    </button>
+                </div>
+            </div>
+
+            <!-- Webcam & Overlay Container -->
+            <div class="webcam-viewport glass-card relative-box rounded-4 overflow-hidden bg-black" style="min-height: 440px;">
+                <!-- Video Element -->
+                <video id="webcamVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; display: block;"></video>
+
+                <!-- Bounding Box Canvas -->
+                <canvas id="overlayCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+
+                <!-- Initial Idle Placeholder -->
+                <div class="camera-placeholder d-flex flex-column align-items-center justify-content-center p-5 text-center text-muted" id="cameraPlaceholder">
+                    <i class="bi bi-camera-video text-muted opacity-50 display-1 mb-3"></i>
+                    <h5 class="text-white fw-bold">Camera Feed Offline</h5>
+                    <p class="small text-muted max-w-sm mb-3">Click "Start Scanner" to launch real-time face detection and target tracking.</p>
+                    <button class="btn btn-emerald rounded-pill px-4" onclick="document.getElementById('startBtn').click()">
+                        <i class="bi bi-play-fill"></i> Launch Scanner Now
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scanner Control Bar -->
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-secondary border-opacity-10">
+                <div class="d-flex align-items-center gap-3 extra-small text-muted">
+                    <span><i class="bi bi-activity text-emerald"></i> FPS: <strong id="fpsCounter">0</strong></span>
+                    <span><i class="bi bi-stopwatch text-cyan"></i> Latency: <strong id="latencyCounter">0ms</strong></span>
+                    <span><i class="bi bi-people-fill text-purple"></i> Faces in View: <strong id="facesCount">0</strong></span>
+                </div>
+                
+                <div class="form-check form-switch extra-small">
+                    <input class="form-check-input" type="checkbox" id="audioAlertToggle" checked>
+                    <label class="form-check-label text-muted" for="audioAlertToggle"><i class="bi bi-volume-up-fill me-1"></i> Target Audio Alerts</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Side HUD & Live Detections Stream -->
+    <div class="col-lg-4">
+        <!-- Live Target Spot Card -->
+        <div class="glass-card p-3 mb-4" id="targetAlertCard">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="badge bg-emerald text-dark fw-bold px-3 py-1 rounded-pill extra-small">
+                    <i class="bi bi-crosshair me-1"></i> LIVE MATCH SPOTLIGHT
+                </span>
+                <span class="extra-small text-muted" id="matchTimestamp">Waiting for target...</span>
+            </div>
+
+            <div id="noMatchContent" class="text-center py-4 text-muted">
+                <i class="bi bi-shield-lock display-4 opacity-25 d-block mb-2"></i>
+                <div class="small fw-medium">No Target Spotted Yet</div>
+                <div class="extra-small opacity-50 mt-1">Point camera at registered face target</div>
+            </div>
+
+            <!-- Target Match Info Block (Hidden by default) -->
+            <div id="matchContent" class="d-none">
+                <div class="d-flex align-items-center gap-3 p-3 rounded-3 bg-emerald-subtle border border-emerald border-opacity-30 mb-3">
+                    <img id="matchTargetPhoto" src="/static/img/avatar-placeholder.png" class="rounded-circle border border-emerald" style="width: 64px; height: 64px; object-fit: cover;">
+                    <div>
+                        <div class="h5 mb-0 fw-bold text-emerald" id="matchTargetName">Target Name</div>
+                        <div class="extra-small font-monospace theme-text opacity-75" id="matchTargetID">TGT-XXXXXX</div>
+                        <div class="mt-1">
+                            <span class="badge bg-emerald text-dark extra-small fw-bold" id="matchConfidenceBadge">Match: 98.4%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Liveness Attributes -->
+                <div class="row g-2 extra-small">
+                    <div class="col-6">
+                        <div class="glass-card p-2 text-center">
+                            <div class="text-muted extra-small">Emotion</div>
+                            <div class="fw-bold text-capitalize theme-text" id="matchEmotion">Neutral</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="glass-card p-2 text-center">
+                            <div class="text-muted extra-small">Mask Check</div>
+                            <div class="fw-bold theme-text" id="matchMask">No Mask</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="glass-card p-2 text-center">
+                            <div class="text-muted extra-small">Smile State</div>
+                            <div class="fw-bold theme-text" id="matchSmile">No Smile</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="glass-card p-2 text-center">
+                            <div class="text-muted extra-small">Liveness</div>
+                            <div class="fw-bold text-emerald" id="matchLiveness">VERIFIED 🟢</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Detections Activity Feed -->
+        <div class="glass-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0 fw-bold theme-text"><i class="bi bi-clock-history me-2 text-cyan"></i>Recent Detection Events</h6>
+                <a href="{{ url_for('tracker.detections_history') }}" class="extra-small text-cyan text-decoration-none">View All</a>
+            </div>
+
+            <div class="detection-feed-list" id="detectionFeedList" style="max-height: 280px; overflow-y: auto;">
+                {% if recent_detections %}
+                    {% for log in recent_detections %}
+                    <div class="d-flex align-items-center gap-3 p-2 rounded-3 hover-glass mb-2 border border-secondary border-opacity-10">
+                        <div class="badge bg-emerald-subtle text-emerald rounded-circle p-2">
+                            <i class="bi bi-person-check-fill fs-6"></i>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-bold text-truncate small theme-text">{{ log.target_name }}</div>
+                            <div class="extra-small text-muted font-monospace">{{ log.time }} &bull; Conf: {{ log.confidence }}%</div>
+                        </div>
+                        <span class="badge bg-emerald text-dark extra-small font-monospace">{{ log.target_id }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4 text-muted extra-small">No detection logs recorded yet.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tracker.js') }}"></script>
+{% endblock %}
+{% endblock %}

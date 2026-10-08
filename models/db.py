@@ -1,7 +1,6 @@
 import sqlite3
 import os
 from contextlib import contextmanager
-from werkzeug.security import generate_password_hash
 from config import Config
 
 # Helper context manager for database connections
@@ -20,81 +19,91 @@ def get_db_connection():
         conn.close()
 
 def init_db():
-    """Initializes the SQLite database with all tables and a default administrator."""
-    # Ensure database file path folder exists
+    """Initializes the SQLite database with multi-user account isolation and target tracking."""
+    # Ensure database file directory exists
     os.makedirs(os.path.dirname(Config.DATABASE_PATH), exist_ok=True)
     
     with get_db_connection() as conn:
         cursor = conn.cursor()
         
-        # 1. Admins Table
+        # Check if old legacy schema exists without user_id column
+        cursor.execute("PRAGMA table_info(targets)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if columns and 'user_id' not in columns:
+            print("[DB Migration] Upgrading schema for Multi-User Account Isolation...")
+            cursor.execute("DROP TABLE IF EXISTS targets")
+            cursor.execute("DROP TABLE IF EXISTS target_encodings")
+            cursor.execute("DROP TABLE IF EXISTS detection_logs")
+            cursor.execute("DROP TABLE IF EXISTS settings")
+
+        cursor.execute("PRAGMA table_info(settings)")
+        settings_cols = [col[1] for col in cursor.fetchall()]
+        if settings_cols and 'user_id' not in settings_cols:
+            cursor.execute("DROP TABLE IF EXISTS settings")
+        
+        # 1. Users Table (Google OAuth & User Accounts)
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS admins (
+            CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
+                google_id TEXT,
+                avatar_url TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_login TIMESTAMP
+                last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        
-        # 2. Students Table
+
+        # 2. Targets Table (User-scoped target profiles to track)
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS students (
+            CREATE TABLE IF NOT EXISTS targets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id TEXT UNIQUE NOT NULL,
+                user_id INTEGER NOT NULL,
+                target_id TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
-                roll_number TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                phone TEXT,
-                department TEXT NOT NULL,
-                semester TEXT NOT NULL,
+                notes TEXT,
                 photo_path TEXT,
                 status TEXT DEFAULT 'Active',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         ''')
         
-        # 3. Face Encodings Table
+        # 3. Target Face Encodings Table (User-scoped 128D encodings)
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS face_encodings (
+            CREATE TABLE IF NOT EXISTS target_encodings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                target_id TEXT NOT NULL,
                 encoding_json TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(student_id) REFERENCES students(student_id) ON DELETE CASCADE
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY(target_id) REFERENCES targets(target_id) ON DELETE CASCADE
             )
         ''')
         
-        # 4. Attendance Logs Table
+        # 4. Detection Logs Table (User-scoped detection history)
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS attendance (
+            CREATE TABLE IF NOT EXISTS detection_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                target_id TEXT NOT NULL,
+                target_name TEXT NOT NULL,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 date TEXT NOT NULL,
                 time TEXT NOT NULL,
-                subject TEXT DEFAULT 'Python',
-                status TEXT NOT NULL,
-                method TEXT DEFAULT 'Face',
                 confidence REAL,
                 emotion TEXT,
                 smile_detected INTEGER,
                 blink_detected INTEGER,
                 mask_detected INTEGER,
+                snapshot_path TEXT,
+                location_tag TEXT DEFAULT 'Primary Camera',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(student_id) REFERENCES students(student_id) ON DELETE CASCADE,
-                UNIQUE(student_id, date, subject)
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         ''')
         
-        # Ensure subject column exists if database was created prior
-        cursor.execute("PRAGMA table_info(attendance)")
-        columns = [column[1] for column in cursor.fetchall()]
-        if 'subject' not in columns:
-            cursor.execute("ALTER TABLE attendance ADD COLUMN subject TEXT DEFAULT 'Python'")
-
         # 5. System Logs Table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS system_logs (
@@ -106,42 +115,20 @@ def init_db():
             )
         ''')
         
-        # 6. Settings Table
+        # 6. User Settings Table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
-                value TEXT NOT NULL
+                user_id INTEGER NOT NULL,
+                key TEXT NOT NULL,
+                value TEXT NOT NULL,
+                PRIMARY KEY (user_id, key),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         ''')
         
-        # Create indexes for optimized queries
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_students_dept ON students(department)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_face_encodings_student ON face_encodings(student_id)')
+        # Create indexes for optimized user-scoped queries
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_targets_user ON targets(user_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_detection_user_date ON detection_logs(user_id, date)')
 
-        # Insert Default Administrator if not exists
-        cursor.execute("SELECT id FROM admins WHERE username = 'admin'")
-        if not cursor.fetchone():
-            default_hashed_pwd = generate_password_hash("adminpassword")
-            cursor.execute('''
-                INSERT INTO admins (username, password_hash, email, name)
-                VALUES (?, ?, ?, ?)
-            ''', ("admin", default_hashed_pwd, "admin@facetrack.ai", "System Administrator"))
-            print("[DB] Default admin created (admin / adminpassword)")
-            
-        # Insert Default Settings if not exists
-        default_settings = {
-            'tolerance': str(Config.DEFAULT_TOLERANCE),
-            'confidence_threshold': str(Config.DEFAULT_CONFIDENCE_THRESHOLD),
-            'camera_index': str(Config.DEFAULT_CAMERA_INDEX),
-            'theme': 'dark',
-            'attendance_start': '08:00',
-            'attendance_end': '18:00'
-        }
-        
-        for key, val in default_settings.items():
-            cursor.execute("SELECT key FROM settings WHERE key = ?", (key,))
-            if not cursor.fetchone():
-                cursor.execute("INSERT INTO settings (key, value) VALUES (?, ?)", (key, val))
-                
-    print("[DB] Database initialized successfully.")
+    print("[DB] Multi-User Target Tracking Database initialized successfully.")

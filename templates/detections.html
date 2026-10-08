@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}Detection Logs - FaceTrack AI{% endblock %}
+{% block header_title %}📜 Live Face Detection & Tracking Logs{% endblock %}
+
+{% block content %}
+<div class="glass-card p-3 mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <form class="d-flex flex-wrap align-items-center gap-2 flex-grow-1" method="GET" action="{{ url_for('tracker.detections_history') }}">
+            <select class="form-select form-select-sm glass-input" name="target_id" style="max-width: 220px;">
+                <option value="">All Registered Targets</option>
+                {% for t in targets %}
+                <option value="{{ t.target_id }}" {% if request.args.get('target_id') == t.target_id %}selected{% endif %}>
+                    {{ t.name }} ({{ t.target_id }})
+                </option>
+                {% endfor %}
+            </select>
+            
+            <input type="date" class="form-control form-control-sm glass-input" name="date" value="{{ request.args.get('date', '') }}" style="max-width: 180px;">
+            
+            <button type="submit" class="btn btn-emerald btn-sm rounded-pill px-3">
+                <i class="bi bi-filter me-1"></i> Filter Logs
+            </button>
+            <a href="{{ url_for('tracker.detections_history') }}" class="btn btn-outline-light btn-sm rounded-pill px-3 theme-text">Reset</a>
+        </form>
+
+        <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="clearLogs()">
+            <i class="bi bi-trash-fill me-1"></i> Clear Log History
+        </button>
+    </div>
+</div>
+
+<!-- Logs Table -->
+<div class="glass-card overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0 align-middle">
+            <thead>
+                <tr class="text-muted extra-small text-uppercase tracking-wider border-bottom border-secondary border-opacity-25">
+                    <th class="ps-4">Timestamp</th>
+                    <th>Target Person</th>
+                    <th>Target ID</th>
+                    <th>Confidence</th>
+                    <th>Detected Liveness & Features</th>
+                    <th>Location Tag</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if logs %}
+                    {% for log in logs %}
+                    <tr>
+                        <td class="ps-4 font-monospace extra-small theme-text">
+                            <div>{{ log.date }}</div>
+                            <div class="text-muted">{{ log.time }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-bold theme-text small">{{ log.target_name }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-emerald-subtle text-emerald font-monospace extra-small">{{ log.target_id }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-emerald text-dark fw-bold extra-small">{{ log.confidence }}%</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-1 extra-small">
+                                <span class="badge bg-secondary bg-opacity-20 text-capitalize theme-text">{{ log.emotion or 'neutral' }}</span>
+                                {% if log.mask_detected %}
+                                    <span class="badge bg-info bg-opacity-20 text-info"><i class="bi bi-shield-fill-check"></i> Mask</span>
+                                {% endif %}
+                                {% if log.smile_detected %}
+                                    <span class="badge bg-warning bg-opacity-20 text-warning"><i class="bi bi-emoji-smile-fill"></i> Smile</span>
+                                {% endif %}
+                                {% if log.blink_detected %}
+                                    <span class="badge bg-purple bg-opacity-20 text-purple"><i class="bi bi-eye-fill"></i> Blink</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="extra-small text-muted">
+                            <i class="bi bi-camera-video me-1"></i> {{ log.location_tag or 'Primary Camera' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-clipboard-x display-4 opacity-25 d-block mb-2"></i>
+                            <div>No detection logs found matching criteria.</div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function clearLogs() {
+    if (confirm("Are you sure you want to clear all face detection history logs?")) {
+        fetch('/api/clear_logs', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) window.location.reload();
+            });
+    }
+}
+</script>
+{% endblock %}

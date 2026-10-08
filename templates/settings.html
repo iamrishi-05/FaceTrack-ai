@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Settings - FaceTrack AI{% endblock %}
+{% block header_title %}⚙️ System Configurations & AI Engine Settings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="glass-card p-4">
+            <h5 class="fw-bold mb-3 theme-text">Face Tracking Parameters</h5>
+            <p class="text-muted small mb-4">Fine-tune the biometrics matching threshold and tracking notifications.</p>
+
+            <form method="POST" action="{{ url_for('tracker.settings_view') }}">
+                <!-- Distance Tolerance Slider -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label small fw-semibold theme-text mb-0">Biometric Match Tolerance</label>
+                        <span class="badge bg-emerald text-dark fw-bold font-monospace" id="toleranceVal">{{ settings.get('tolerance', '0.5') }}</span>
+                    </div>
+                    <input type="range" class="form-range" name="tolerance" min="0.3" max="0.7" step="0.02" value="{{ settings.get('tolerance', '0.5') }}" oninput="document.getElementById('toleranceVal').innerText = this.value">
+                    <div class="d-flex justify-content-between extra-small text-muted">
+                        <span>0.3 (Strict - Fewer False Positives)</span>
+                        <span>0.5 (Balanced Default)</span>
+                        <span>0.7 (Relaxed - Higher Recall)</span>
+                    </div>
+                </div>
+
+                <!-- Cooldown Seconds -->
+                <div class="mb-4">
+                    <label class="form-label small fw-semibold theme-text">Detection Log Cooldown (Seconds)</label>
+                    <input type="number" class="form-control glass-input" name="cooldown_seconds" min="1" max="60" value="{{ settings.get('cooldown_seconds', '4') }}">
+                    <div class="extra-small text-muted mt-1">Prevents logging multiple duplicate entries when a target stays continuously in front of the camera.</div>
+                </div>
+
+                <!-- Audio Alerts -->
+                <div class="mb-4 form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="audio_alert" id="audioCheck" {% if settings.get('audio_alert', 'true') == 'true' %}checked{% endif %}>
+                    <label class="form-check-label theme-text small fw-semibold" for="audioCheck">Enable Audio Alert Chime when Target is Spotted</label>
+                </div>
+
+                <div class="pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-emerald rounded-pill px-4 fw-bold">
+                        <i class="bi bi-save-fill me-1"></i> Save Configuration
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
