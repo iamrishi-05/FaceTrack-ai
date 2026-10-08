@@ -15,18 +15,16 @@ for folder in [Config.UPLOAD_FOLDER, Config.LOGS_FOLDER, os.path.join(Config.UPL
     except Exception as e:
         print(f"[WARN] Failed to create folder {folder}: {e}")
 
-# Initialize Target Tracking database schema with Multi-Tenant User Accounts
+# Initialize Target Tracking database schema
 try:
     init_db()
 except Exception as e:
     print(f"[FATAL] Failed to initialize SQLite database: {e}")
 
-# 2. Register Target Tracking & Authentication Blueprints
-from routes.auth import auth_bp
+# 2. Register Target Tracking Blueprints
 from routes.tracker import tracker_bp
 from routes.api import api_bp
 
-app.register_blueprint(auth_bp)
 app.register_blueprint(tracker_bp)
 app.register_blueprint(api_bp)
 

@@ -9,9 +9,10 @@ def generate_target_id():
     short_uuid = str(uuid.uuid4()).split('-')[0].upper()
     return f"TGT-{short_uuid[:6]}"
 
-def add_target(user_id, name, notes="", photo_path=None, encodings_list=None, target_id=None):
+def add_target(name, notes="", photo_path=None, encodings_list=None, target_id=None, user_id=1):
     """
-    Creates a new Target profile for a specific user and saves associated face encodings.
+    Creates a new Target profile and saves associated face encodings.
+    `encodings_list`: list of 128D encodings (lists/arrays of floats).
     """
     if not target_id:
         target_id = generate_target_id()
@@ -31,45 +32,44 @@ def add_target(user_id, name, notes="", photo_path=None, encodings_list=None, ta
                     VALUES (?, ?, ?)
                 ''', (user_id, target_id, enc_json))
                 
-    log_event("INFO", "TargetModel", f"Target created for user {user_id}: {name} ({target_id})")
+    log_event("INFO", "TargetModel", f"Target created: {name} ({target_id}) with {len(encodings_list or [])} encodings.")
     return target_id
 
-def get_all_targets(user_id):
-    """Retrieves all target records owned by user_id."""
+def get_all_targets(user_id=None):
+    """Retrieves all registered target records."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''
             SELECT t.*, 
-                   (SELECT COUNT(*) FROM target_encodings te WHERE te.target_id = t.target_id AND te.user_id = t.user_id) as encodings_count,
-                   (SELECT COUNT(*) FROM detection_logs dl WHERE dl.target_id = t.target_id AND dl.user_id = t.user_id) as total_detections,
-                   (SELECT MAX(timestamp) FROM detection_logs dl WHERE dl.target_id = t.target_id AND dl.user_id = t.user_id) as last_detected
+                   (SELECT COUNT(*) FROM target_encodings te WHERE te.target_id = t.target_id) as encodings_count,
+                   (SELECT COUNT(*) FROM detection_logs dl WHERE dl.target_id = t.target_id) as total_detections,
+                   (SELECT MAX(timestamp) FROM detection_logs dl WHERE dl.target_id = t.target_id) as last_detected
             FROM targets t
-            WHERE t.user_id = ?
             ORDER BY t.created_at DESC
-        ''', (user_id,))
+        ''')
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
 
-def get_target_by_id(user_id, target_id):
-    """Retrieves single target profile owned by user_id."""
+def get_target_by_id(target_id):
+    """Retrieves single target profile by target_id."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM targets WHERE user_id = ? AND target_id = ?', (user_id, target_id))
+        cursor.execute('SELECT * FROM targets WHERE target_id = ?', (target_id,))
         row = cursor.fetchone()
         return dict(row) if row else None
 
-def delete_target(user_id, target_id):
-    """Deletes a target and its encodings and detection logs for a specific user."""
+def delete_target(target_id):
+    """Deletes a target and all their encodings and detection logs."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute('DELETE FROM targets WHERE user_id = ? AND target_id = ?', (user_id, target_id))
-        cursor.execute('DELETE FROM target_encodings WHERE user_id = ? AND target_id = ?', (user_id, target_id))
-        cursor.execute('DELETE FROM detection_logs WHERE user_id = ? AND target_id = ?', (user_id, target_id))
-    log_event("INFO", "TargetModel", f"Target deleted for user {user_id}: {target_id}")
+        cursor.execute('DELETE FROM targets WHERE target_id = ?', (target_id,))
+        cursor.execute('DELETE FROM target_encodings WHERE target_id = ?', (target_id,))
+        cursor.execute('DELETE FROM detection_logs WHERE target_id = ?', (target_id,))
+    log_event("INFO", "TargetModel", f"Target deleted: {target_id}")
 
-def get_all_target_encodings(user_id):
+def get_all_target_encodings(user_id=None):
     """
-    Returns a dict mapping target_id to encodings owned by user_id:
+    Returns a dict mapping target_id to target metadata & encodings:
     {
         'TGT-1234': {
             'target_id': 'TGT-1234',
@@ -84,9 +84,9 @@ def get_all_target_encodings(user_id):
         cursor.execute('''
             SELECT t.target_id, t.name, t.photo_path, te.encoding_json
             FROM targets t
-            JOIN target_encodings te ON t.target_id = te.target_id AND t.user_id = te.user_id
-            WHERE t.user_id = ? AND t.status = 'Active'
-        ''', (user_id,))
+            JOIN target_encodings te ON t.target_id = te.target_id
+            WHERE t.status = 'Active'
+        ''')
         rows = cursor.fetchall()
         
         targets_map = {}
@@ -103,24 +103,24 @@ def get_all_target_encodings(user_id):
                 enc = json.loads(row['encoding_json'])
                 targets_map[tgt_id]['encodings'].append(enc)
             except Exception as e:
-                log_event("ERROR", "TargetModel", f"Failed to parse JSON encoding: {e}")
+                log_event("ERROR", "TargetModel", f"Failed to parse JSON encoding for {tgt_id}: {e}")
                 
         return targets_map
 
-def is_target_logged_recently(user_id, target_id, seconds=60):
-    """Checks if target was logged for user_id in detection_logs within the last N seconds (1 minute)."""
+def is_target_logged_recently(target_id, seconds=60):
+    """Checks if target was logged in detection_logs within the last N seconds (1 minute default)."""
     cutoff_time = (datetime.datetime.now() - datetime.timedelta(seconds=seconds)).strftime('%Y-%m-%d %H:%M:%S')
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''
             SELECT id FROM detection_logs 
-            WHERE user_id = ? AND target_id = ? AND timestamp >= ?
+            WHERE target_id = ? AND timestamp >= ?
             LIMIT 1
-        ''', (user_id, target_id, cutoff_time))
+        ''', (target_id, cutoff_time))
         return cursor.fetchone() is not None
 
-def log_detection(user_id, target_id, target_name, confidence, emotion="neutral", smile=False, blink=False, mask=False, snapshot_path=None, location="Primary Camera"):
-    """Logs a target detection event in detection_logs table for a user."""
+def log_detection(target_id, target_name, confidence, emotion="neutral", smile=False, blink=False, mask=False, snapshot_path=None, location="Primary Camera", user_id=1):
+    """Logs a target detection event in detection_logs table."""
     now = datetime.datetime.now()
     date_str = now.strftime('%Y-%m-%d')
     time_str = now.strftime('%H:%M:%S')
@@ -136,21 +136,25 @@ def log_detection(user_id, target_id, target_name, confidence, emotion="neutral"
             emotion, 1 if smile else 0, 1 if blink else 0, 1 if mask else 0,
             snapshot_path, location
         ))
-    log_event("INFO", "DetectionLog", f"Target detected for user {user_id}: {target_name} ({target_id})")
+    log_event("INFO", "DetectionLog", f"Target detected: {target_name} ({target_id}) - Confidence: {confidence:.1f}%")
 
-def get_detection_logs(user_id, limit=100, target_id=None, date=None):
-    """Retrieves detection logs owned by user_id with optional filtering."""
+def get_detection_logs(limit=100, target_id=None, date=None, user_id=None):
+    """Retrieves detection logs with optional filtering."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        query = 'SELECT * FROM detection_logs WHERE user_id = ?'
-        params = [user_id]
+        query = 'SELECT * FROM detection_logs'
+        params = []
+        conditions = []
         
         if target_id:
-            query += ' AND target_id = ?'
+            conditions.append('target_id = ?')
             params.append(target_id)
         if date:
-            query += ' AND date = ?'
+            conditions.append('date = ?')
             params.append(date)
+            
+        if conditions:
+            query += ' WHERE ' + ' AND '.join(conditions)
             
         query += ' ORDER BY timestamp DESC LIMIT ?'
         params.append(limit)
@@ -159,28 +163,28 @@ def get_detection_logs(user_id, limit=100, target_id=None, date=None):
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
 
-def clear_detection_logs(user_id):
-    """Clears detection logs for a specific user."""
+def clear_detection_logs(user_id=None):
+    """Clears all detection logs."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute('DELETE FROM detection_logs WHERE user_id = ?', (user_id,))
+        cursor.execute('DELETE FROM detection_logs')
 
-def get_tracker_stats(user_id):
-    """Returns dashboard statistics for a specific user's face tracking system."""
+def get_tracker_stats(user_id=None):
+    """Returns dashboard statistics for face tracking system."""
     today_str = datetime.datetime.now().strftime('%Y-%m-%d')
     with get_db_connection() as conn:
         cursor = conn.cursor()
         
-        cursor.execute('SELECT COUNT(*) FROM targets WHERE user_id = ? AND status = "Active"', (user_id,))
+        cursor.execute('SELECT COUNT(*) FROM targets WHERE status = "Active"')
         total_targets = cursor.fetchone()[0]
         
-        cursor.execute('SELECT COUNT(*) FROM detection_logs WHERE user_id = ? AND date = ?', (user_id, today_str))
+        cursor.execute('SELECT COUNT(*) FROM detection_logs WHERE date = ?', (today_str,))
         today_detections = cursor.fetchone()[0]
         
-        cursor.execute('SELECT COUNT(DISTINCT target_id) FROM detection_logs WHERE user_id = ? AND date = ?', (user_id, today_str))
+        cursor.execute('SELECT COUNT(DISTINCT target_id) FROM detection_logs WHERE date = ?', (today_str,))
         targets_spotted_today = cursor.fetchone()[0]
         
-        cursor.execute('SELECT timestamp, target_name FROM detection_logs WHERE user_id = ? ORDER BY timestamp DESC LIMIT 1', (user_id,))
+        cursor.execute('SELECT timestamp, target_name FROM detection_logs ORDER BY timestamp DESC LIMIT 1')
         last_log = cursor.fetchone()
         last_detection_time = last_log['timestamp'] if last_log else None
         last_target_name = last_log['target_name'] if last_log else None

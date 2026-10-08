@@ -96,9 +96,9 @@
             <div class="sidebar-footer">
                 <div class="d-flex align-items-center gap-2">
                     <span class="status-pulse-dot bg-emerald"></span>
-                    <span class="small fw-semibold theme-text">Scanner Active</span>
+                    <span class="small fw-semibold theme-text">Scanner Ready</span>
                 </div>
-                <div class="mt-1 extra-small text-muted text-truncate">User: <strong>{{ session.get('user_name', 'Guest') }}</strong></div>
+                <div class="mt-1 extra-small text-muted">Engine: HOG 128D Encodings</div>
             </div>
         </aside>
         
@@ -126,31 +126,6 @@
                     <button class="theme-toggle-btn" id="themeToggleBtn" type="button" title="Switch Theme">
                         <i class="bi bi-moon-fill" id="themeIcon"></i>
                     </button>
-
-                    <!-- User Account Profile Dropdown -->
-                    <div class="dropdown">
-                        <button class="admin-profile-btn dropdown-toggle d-flex align-items-center gap-2" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            {% if session.get('user_avatar') %}
-                                <img src="{{ session.get('user_avatar') }}" class="rounded-circle border border-emerald" style="width:32px; height:32px; object-fit:cover;">
-                            {% else %}
-                                <div class="admin-avatar">
-                                    {{ session.get('user_name', 'U')[:1].upper() }}
-                                </div>
-                            {% endif %}
-                            <span class="d-none d-md-inline small fw-semibold theme-text">{{ session.get('user_name') }}</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end glass-card border-0 shadow-lg p-2" aria-labelledby="userDropdown" style="background: rgba(15, 23, 42, 0.95); min-width: 200px;">
-                            <li class="px-3 py-2 border-bottom border-secondary border-opacity-10 mb-1">
-                                <div class="fw-bold small theme-text">{{ session.get('user_name') }}</div>
-                                <div class="extra-small text-muted text-truncate">{{ session.get('user_email') }}</div>
-                            </li>
-                            <li>
-                                <a class="dropdown-item rounded py-2 text-danger extra-small fw-bold" href="{{ url_for('auth.logout') }}">
-                                    <i class="bi bi-box-arrow-right me-2"></i>Sign Out
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
                 </div>
             </header>
             

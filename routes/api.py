@@ -2,7 +2,7 @@ import os
 import time
 import json
 import base64
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify
 from config import Config
 from models.target import (
     add_target, get_all_target_encodings, log_detection, 
@@ -16,20 +16,16 @@ from utils.logger import log_event
 api_bp = Blueprint('api', __name__)
 
 # In-memory cooldown tracker to prevent flooding DB with duplicate detection logs
-# Maps (user_id, target_id) -> last_logged_timestamp
+# Maps target_id -> last_logged_timestamp
 DETECTION_COOLDOWN = {}
 
 @api_bp.route('/api/recognize_frame', methods=['POST'])
 def recognize_frame():
     """
     Processes real-time camera frames sent from the browser canvas.
-    Detects faces, compares against registered Target encodings of the logged-in user.
+    Detects faces, compares against registered Target encodings.
     """
     try:
-        user_id = session.get('user_id')
-        if not user_id:
-            return jsonify({'success': False, 'message': 'Authentication required'}), 401
-
         data = request.get_json() or {}
         image_data = data.get('image')
         if not image_data:
@@ -40,11 +36,11 @@ def recognize_frame():
         if rgb_frame is None:
             return jsonify({'success': False, 'message': 'Failed to decode image frame'}), 400
 
-        # Fetch active target tolerance setting for this user
+        # Fetch active target tolerance setting
         tolerance = Config.DEFAULT_TOLERANCE
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT value FROM settings WHERE user_id = ? AND key = 'tolerance'", (user_id,))
+            cursor.execute("SELECT value FROM settings WHERE key = 'tolerance'")
             row = cursor.fetchone()
             if row:
                 try:
@@ -64,8 +60,8 @@ def recognize_frame():
         # Compute encodings for detected faces
         probe_encodings = face_service.get_face_encodings(rgb_frame, face_locations)
         
-        # Load registered target profiles and encodings strictly owned by user_id
-        target_map = get_all_target_encodings(user_id)
+        # Load registered target profiles and encodings
+        target_map = get_all_target_encodings()
 
         results = []
         current_time = time.time()
@@ -77,7 +73,7 @@ def recognize_frame():
             best_distance = 1.0
             best_confidence = 0.0
 
-            # Compare probe encoding against all target encodings of this user
+            # Compare probe encoding against all target encodings
             for tgt_id, tgt_info in target_map.items():
                 for known_enc in tgt_info['encodings']:
                     dist = face_service.calculate_distance(known_enc, probe_enc)
@@ -93,16 +89,13 @@ def recognize_frame():
                 target_id = best_match_target['target_id']
                 target_name = best_match_target['name']
 
-                # Enforce 1-minute (60 seconds) cooldown per target person per user
-                cooldown_key = (user_id, target_id)
-                last_logged = DETECTION_COOLDOWN.get(cooldown_key, 0)
+                # Enforce 1-minute (60 seconds) cooldown per target person
+                last_logged = DETECTION_COOLDOWN.get(target_id, 0)
                 cooldown_sec = 60.0
-
-                if (current_time - last_logged >= cooldown_sec) and not is_target_logged_recently(user_id, target_id, seconds=60):
-                    DETECTION_COOLDOWN[cooldown_key] = current_time
+                if (current_time - last_logged >= cooldown_sec) and not is_target_logged_recently(target_id, seconds=60):
+                    DETECTION_COOLDOWN[target_id] = current_time
                     # Log detection event to database (at most once per minute)
                     log_detection(
-                        user_id=user_id,
                         target_id=target_id,
                         target_name=target_name,
                         confidence=confidence,
@@ -147,13 +140,9 @@ def recognize_frame():
 def upload_target():
     """
     API endpoint to add a new target person by uploading a photo file or sending a webcam snapshot base64 image.
-    Saves target under the logged-in user's account.
+    Extracts face encodings and saves target to SQLite database.
     """
     try:
-        user_id = session.get('user_id')
-        if not user_id:
-            return jsonify({'success': False, 'message': 'Authentication required'}), 401
-
         name = request.form.get('name') or (request.json.get('name') if request.is_json else None)
         notes = request.form.get('notes') or (request.json.get('notes') if request.is_json else "")
         target_id_custom = request.form.get('target_id') or (request.json.get('target_id') if request.is_json else None)
@@ -172,7 +161,7 @@ def upload_target():
         # Check if file uploaded via multipart form
         if 'photo_file' in request.files and request.files['photo_file'].filename != '':
             file = request.files['photo_file']
-            filename = f"user_{user_id}_target_{int(time.time())}_{file.filename}"
+            filename = f"target_{int(time.time())}_{file.filename}"
             filepath = os.path.join(target_upload_dir, filename)
             file.save(filepath)
             photo_saved_path = f"/uploads/targets/{filename}"
@@ -183,7 +172,7 @@ def upload_target():
         # Check if base64 snapshot provided
         elif (request.form.get('photo_base64') or (request.is_json and request.json.get('photo_base64'))):
             base64_str = request.form.get('photo_base64') or request.json.get('photo_base64')
-            filename = f"user_{user_id}_target_{int(time.time())}.jpg"
+            filename = f"target_{int(time.time())}.jpg"
             filepath = os.path.join(target_upload_dir, filename)
             
             # Save base64 to image file
@@ -205,9 +194,8 @@ def upload_target():
                 'message': 'No face detected in the provided picture. Please upload a clear photo with a visible face.'
             }), 400
 
-        # Save target profile and encodings in database under logged in user_id
+        # Save target profile and encodings in database
         assigned_id = add_target(
-            user_id=user_id,
             name=name,
             notes=notes,
             photo_path=photo_saved_path,
@@ -217,7 +205,7 @@ def upload_target():
 
         return jsonify({
             'success': True,
-            'message': f'Target "{name}" registered successfully under your account!',
+            'message': f'Target "{name}" registered successfully!',
             'target_id': assigned_id,
             'photo_path': photo_saved_path
         })
@@ -229,13 +217,9 @@ def upload_target():
 
 @api_bp.route('/api/clear_logs', methods=['POST'])
 def clear_logs():
-    """Clears detection history logs for logged-in user."""
+    """Clears all detection history logs."""
     try:
-        user_id = session.get('user_id')
-        if not user_id:
-            return jsonify({'success': False, 'message': 'Authentication required'}), 401
-            
-        clear_detection_logs(user_id)
+        clear_detection_logs()
         return jsonify({'success': True, 'message': 'Detection history cleared successfully.'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -243,8 +227,5 @@ def clear_logs():
 
 @api_bp.route('/api/stats', methods=['GET'])
 def get_stats():
-    """Returns real-time system stats for logged-in user."""
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({'success': False, 'message': 'Authentication required'}), 401
-    return jsonify({'success': True, 'stats': get_tracker_stats(user_id)})
+    """Returns real-time system stats."""
+    return jsonify({'success': True, 'stats': get_tracker_stats()})

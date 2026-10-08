@@ -19,74 +19,49 @@ def get_db_connection():
         conn.close()
 
 def init_db():
-    """Initializes the SQLite database with multi-user account isolation and target tracking."""
-    # Ensure database file directory exists
+    """Initializes SQLite database for direct access Target Face Tracking."""
     os.makedirs(os.path.dirname(Config.DATABASE_PATH), exist_ok=True)
     
     with get_db_connection() as conn:
         cursor = conn.cursor()
         
-        # Check if old legacy schema exists without user_id column
-        cursor.execute("PRAGMA table_info(targets)")
-        columns = [col[1] for col in cursor.fetchall()]
-        if columns and 'user_id' not in columns:
-            print("[DB Migration] Upgrading schema for Multi-User Account Isolation...")
-            cursor.execute("DROP TABLE IF EXISTS targets")
-            cursor.execute("DROP TABLE IF EXISTS target_encodings")
-            cursor.execute("DROP TABLE IF EXISTS detection_logs")
-            cursor.execute("DROP TABLE IF EXISTS settings")
-
+        # Check settings table schema
         cursor.execute("PRAGMA table_info(settings)")
         settings_cols = [col[1] for col in cursor.fetchall()]
-        if settings_cols and 'user_id' not in settings_cols:
+        if 'user_id' in settings_cols:
             cursor.execute("DROP TABLE IF EXISTS settings")
-        
-        # 1. Users Table (Google OAuth & User Accounts)
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT UNIQUE NOT NULL,
-                name TEXT NOT NULL,
-                google_id TEXT,
-                avatar_url TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
 
-        # 2. Targets Table (User-scoped target profiles to track)
+        # 1. Targets Table (Target profiles to track)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS targets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                user_id INTEGER DEFAULT 1,
                 target_id TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
                 notes TEXT,
                 photo_path TEXT,
                 status TEXT DEFAULT 'Active',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
-        # 3. Target Face Encodings Table (User-scoped 128D encodings)
+        # 2. Target Face Encodings Table (128D encodings)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS target_encodings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                user_id INTEGER DEFAULT 1,
                 target_id TEXT NOT NULL,
                 encoding_json TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY(target_id) REFERENCES targets(target_id) ON DELETE CASCADE
             )
         ''')
         
-        # 4. Detection Logs Table (User-scoped detection history)
+        # 3. Detection Logs Table (Detection history)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS detection_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                user_id INTEGER DEFAULT 1,
                 target_id TEXT NOT NULL,
                 target_name TEXT NOT NULL,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -99,36 +74,34 @@ def init_db():
                 mask_detected INTEGER,
                 snapshot_path TEXT,
                 location_tag TEXT DEFAULT 'Primary Camera',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
-        # 5. System Logs Table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS system_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                log_level TEXT NOT NULL,
-                module TEXT NOT NULL,
-                message TEXT NOT NULL
-            )
-        ''')
-        
-        # 6. User Settings Table
+        # 4. Settings Table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS settings (
-                user_id INTEGER NOT NULL,
-                key TEXT NOT NULL,
-                value TEXT NOT NULL,
-                PRIMARY KEY (user_id, key),
-                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
             )
         ''')
         
-        # Create indexes for optimized user-scoped queries
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_targets_user ON targets(user_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_detection_user_date ON detection_logs(user_id, date)')
+        # Insert Default Settings if not present
+        default_settings = {
+            'tolerance': str(Config.DEFAULT_TOLERANCE),
+            'confidence_threshold': str(Config.DEFAULT_CONFIDENCE_THRESHOLD),
+            'camera_index': str(Config.DEFAULT_CAMERA_INDEX),
+            'audio_alert': 'true',
+            'cooldown_seconds': '60'
+        }
+        
+        for key, val in default_settings.items():
+            cursor.execute("SELECT key FROM settings WHERE key = ?", (key,))
+            if not cursor.fetchone():
+                cursor.execute("INSERT INTO settings (key, value) VALUES (?, ?)", (key, val))
+                
+        # Create indexes for optimized fast lookups
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_detection_date ON detection_logs(date)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_detection_target ON detection_logs(target_id)')
 
-    print("[DB] Multi-User Target Tracking Database initialized successfully.")
+    print("[DB] Direct-Access Target Tracking Database initialized successfully.")
