@@ -18,8 +18,10 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'facetrack-ai-super-secret-key-185934')
 
     # Clerk Authentication
-    CLERK_PUBLISHABLE_KEY = os.environ.get('CLERK_PUBLISHABLE_KEY') or os.environ.get('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', '')
+    _DEFAULT_CLERK_PUB_KEY = 'pk_test_d29ya2luZy1tb3VzZS0yMzQwLmNsZXJrLmFjY291bnRzLmRldiQ'
+    CLERK_PUBLISHABLE_KEY = os.environ.get('CLERK_PUBLISHABLE_KEY') or os.environ.get('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY') or _DEFAULT_CLERK_PUB_KEY
     CLERK_SECRET_KEY = os.environ.get('CLERK_SECRET_KEY', '')
+
     
     # Automatically derive Frontend API domain from publishable key
     CLERK_FRONTEND_API = ''
