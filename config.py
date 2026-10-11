@@ -39,10 +39,6 @@ class Config:
 
     IS_VERCEL = bool(os.environ.get('VERCEL'))
     
-    # Turso Cloud Database settings (Enables permanent cloud persistence on Vercel)
-    TURSO_DATABASE_URL = os.environ.get('TURSO_DATABASE_URL', '')
-    TURSO_AUTH_TOKEN = os.environ.get('TURSO_AUTH_TOKEN', '')
-
     # Store writeable files in /tmp on Vercel
     BASE_DIR = '/tmp/facetrack_data' if IS_VERCEL else os.path.abspath(os.path.dirname(__file__))
     DB_NAME = 'database.db'

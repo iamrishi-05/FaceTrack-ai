@@ -17,20 +17,11 @@ except ImportError:
 
 class FaceService:
     def __init__(self):
-        self.FACE_REC_AVAILABLE = FACE_REC_AVAILABLE
-        # Load Haar Cascade as fallback face detector from models directory or cv2 system path
-        repo_cascade = os.path.join(os.path.abspath(os.path.dirname(__file__)), '../models/haarcascade_frontalface_default.xml')
-        sys_cascade = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml' if hasattr(cv2, 'data') and hasattr(cv2.data, 'haarcascades') else ''
-        
-        cascade_path = repo_cascade if os.path.exists(repo_cascade) else sys_cascade
-        self.cascade_path = cascade_path
+        # Load Haar Cascade as fallback face detector
+        cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
         self.face_cascade = cv2.CascadeClassifier(cascade_path)
-        if self.face_cascade.empty() and sys_cascade and os.path.exists(sys_cascade):
-            self.cascade_path = sys_cascade
-            self.face_cascade = cv2.CascadeClassifier(sys_cascade)
-            
         if self.face_cascade.empty():
-            log_event("ERROR", "FaceService", f"Failed to load OpenCV Haar Cascade XML from {cascade_path}")
+            log_event("ERROR", "FaceService", "Failed to load OpenCV Haar Cascade XML.")
             
     def decode_image(self, base64_data):
         """
