@@ -28,7 +28,9 @@ def debug_status():
         'has_turso_url': bool(Config.TURSO_DATABASE_URL),
         'turso_url_preview': Config.TURSO_DATABASE_URL[:20] if Config.TURSO_DATABASE_URL else '',
         'has_turso_token': bool(Config.TURSO_AUTH_TOKEN),
-        'face_rec_available': getattr(face_service, 'FACE_REC_AVAILABLE', False)
+        'face_rec_available': getattr(face_service, 'FACE_REC_AVAILABLE', False),
+        'cascade_empty': face_service.face_cascade.empty() if hasattr(face_service, 'face_cascade') else True,
+        'cascade_path': getattr(face_service, 'cascade_path', 'unknown')
     }
     
     # Auto-initialize DB schema if needed
@@ -48,12 +50,24 @@ def debug_status():
         tables = [row[0] for row in rows]
         info['tables'] = tables
         
-        # Check target count
+        # Check target count and sample encodings
         if 'targets' in tables:
             cur.execute("SELECT COUNT(*) FROM targets")
             info['targets_count'] = cur.fetchone()[0]
-            cur.execute("SELECT target_id, name FROM targets LIMIT 5")
-            info['sample_targets'] = [dict(r) if hasattr(r, 'keys') else r[0] for r in cur.fetchall()]
+            cur.execute("SELECT target_id, name, photo_path FROM targets LIMIT 5")
+            sample_tgts = []
+            for r in cur.fetchall():
+                t_dict = dict(r) if hasattr(r, 'keys') else {'target_id': r[0], 'name': r[1], 'photo_path': r[2]}
+                # Truncate photo_path preview if base64
+                if t_dict.get('photo_path') and len(t_dict['photo_path']) > 40:
+                    t_dict['photo_path_preview'] = t_dict['photo_path'][:30] + '... [len=' + str(len(t_dict['photo_path'])) + ']'
+                sample_tgts.append(t_dict)
+            info['sample_targets'] = sample_tgts
+            
+        if 'target_encodings' in tables:
+            cur.execute("SELECT target_id, length(encoding_json) FROM target_encodings LIMIT 5")
+            info['sample_encodings'] = [dict(r) if hasattr(r, 'keys') else {'target_id': r[0], 'len': r[1]} for r in cur.fetchall()]
+            
         conn.close()
     except Exception as e:
         info['db_error'] = str(e)
