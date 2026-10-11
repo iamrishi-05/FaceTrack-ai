@@ -9,38 +9,13 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /**
- * Initialize and handle Dark/Light Theme Switching
+ * Enforce Light Theme across the entire application
  */
 function initTheme() {
-    const themeBtn = document.getElementById("themeToggleBtn");
-    const themeIcon = document.getElementById("themeIcon");
-    if (!themeBtn || !themeIcon) return;
-
-    // Set initial icon based on active theme
-    const activeTheme = document.documentElement.getAttribute("data-theme") || "dark";
-    updateThemeIcon(activeTheme, themeIcon);
-
-    // Toggle click event
-    themeBtn.addEventListener("click", () => {
-        const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
-        const newTheme = currentTheme === "dark" ? "light" : "dark";
-        
-        document.documentElement.setAttribute("data-theme", newTheme);
-        localStorage.setItem("theme", newTheme);
-        updateThemeIcon(newTheme, themeIcon);
-        
-        // Log event
-        console.log(`Theme toggled to: ${newTheme}`);
-    });
+    document.documentElement.setAttribute("data-theme", "light");
+    localStorage.setItem("theme", "light");
 }
 
-function updateThemeIcon(theme, iconElement) {
-    if (theme === "dark") {
-        iconElement.className = "bi bi-sun-fill";
-    } else {
-        iconElement.className = "bi bi-moon-fill";
-    }
-}
 
 /**
  * Sidebar Navigation Mobile Drawer Controls

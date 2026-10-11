@@ -21,12 +21,34 @@ try:
 except Exception as e:
     print(f"[FATAL] Failed to initialize SQLite database: {e}")
 
-# 2. Register Target Tracking Blueprints
+# 2. Register Blueprints
 from routes.tracker import tracker_bp
 from routes.api import api_bp
+from routes.auth import auth_bp
 
+app.register_blueprint(auth_bp)
 app.register_blueprint(tracker_bp)
 app.register_blueprint(api_bp)
+
+# Context processor for Clerk & User state
+@app.context_processor
+def inject_auth_state():
+    from flask import session
+    user = None
+    if session.get('user_id'):
+        user = {
+            'id': session.get('user_id'),
+            'email': session.get('user_email', ''),
+            'name': session.get('user_name', 'User'),
+            'avatar_url': session.get('user_avatar', '')
+        }
+    return {
+        'clerk_publishable_key': Config.CLERK_PUBLISHABLE_KEY,
+        'clerk_frontend_api': Config.CLERK_FRONTEND_API,
+        'current_user': user
+    }
+
+
 
 # 3. Securely serve target profile photos and uploads
 @app.route('/uploads/<path:filename>')

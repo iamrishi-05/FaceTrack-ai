@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from models.target import (
     get_all_targets, get_target_by_id, delete_target, 
     get_detection_logs, get_tracker_stats
@@ -8,7 +8,13 @@ from utils.logger import log_event
 
 tracker_bp = Blueprint('tracker', __name__)
 
+@tracker_bp.before_request
+def require_authentication():
+    if not session.get('user_id') and not session.get('admin_id'):
+        return redirect(url_for('auth.login'))
+
 @tracker_bp.route('/')
+
 def live_tracker():
     """Main dashboard & live face tracking feed view."""
     stats = get_tracker_stats()

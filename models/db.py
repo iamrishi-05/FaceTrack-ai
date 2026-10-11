@@ -6,9 +6,10 @@ from config import Config
 # Helper context manager for database connections
 @contextmanager
 def get_db_connection():
-    conn = sqlite3.connect(Config.DATABASE_PATH)
+    conn = sqlite3.connect(Config.DATABASE_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row  # Enables column access by name like dictionary
     conn.execute("PRAGMA foreign_keys = ON")  # Enforce foreign key constraints
+
     try:
         yield conn
         conn.commit()
@@ -30,6 +31,19 @@ def init_db():
         settings_cols = [col[1] for col in cursor.fetchall()]
         if 'user_id' in settings_cols:
             cursor.execute("DROP TABLE IF EXISTS settings")
+
+        # Users Table (Clerk / Google accounts)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                google_id TEXT,
+                avatar_url TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
 
         # 1. Targets Table (Target profiles to track)
         cursor.execute('''

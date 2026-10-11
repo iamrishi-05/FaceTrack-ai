@@ -34,8 +34,8 @@ def get_or_create_user(email, name=None, google_id=None, avatar_url=None):
             
             cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
             updated_user = cursor.fetchone()
-            log_event("INFO", "UserModel", f"User logged in: {email} (ID: {user_id})")
-            return dict(updated_user)
+            res_user = dict(updated_user)
+            is_new = False
         else:
             # Insert new user account
             cursor.execute('''
@@ -46,8 +46,16 @@ def get_or_create_user(email, name=None, google_id=None, avatar_url=None):
             new_id = cursor.lastrowid
             cursor.execute('SELECT * FROM users WHERE id = ?', (new_id,))
             new_user = cursor.fetchone()
-            log_event("INFO", "UserModel", f"New user account created: {email} (ID: {new_id})")
-            return dict(new_user)
+            res_user = dict(new_user)
+            is_new = True
+
+    if is_new:
+        log_event("INFO", "UserModel", f"New user account created: {email} (ID: {res_user['id']})")
+    else:
+        log_event("INFO", "UserModel", f"User logged in: {email} (ID: {res_user['id']})")
+
+    return res_user
+
 
 def get_user_by_id(user_id):
     """Retrieves user account by user_id."""

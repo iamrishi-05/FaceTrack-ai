@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,14 +12,303 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Custom Design System CSS -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 
-    <!-- Google Identity Services Client Library -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Clerk UI bundle & core JavaScript SDK -->
+    {% if clerk_publishable_key and clerk_frontend_api %}
+    <script
+        defer
+        crossorigin="anonymous"
+        src="https://{{ clerk_frontend_api }}/npm/@clerk/ui@1/dist/ui.browser.js"
+        type="text/javascript">
+    </script>
+    <script
+        defer
+        crossorigin="anonymous"
+        data-clerk-publishable-key="{{ clerk_publishable_key }}"
+        src="https://{{ clerk_frontend_api }}/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+        type="text/javascript">
+    </script>
+    {% endif %}
+
+    <style>
+        :root {
+            --emerald-primary: #10b981;
+            --emerald-dark: #059669;
+            --emerald-soft: rgba(16, 185, 129, 0.1);
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.08) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.05) 0px, transparent 50%),
+                radial-gradient(#e2e8f0 1.2px, transparent 1.2px);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px;
+            background-position: 0 0, 0 0, 0 0, 0 0;
+        }
+
+        /* Ambient glowing background orbs */
+        .ambient-glow-1 {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            top: -150px;
+            left: -150px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0) 70%);
+            border-radius: 50%;
+            filter: blur(40px);
+            pointer-events: none;
+            animation: orbFloat 8s ease-in-out infinite alternate;
+        }
+
+        .ambient-glow-2 {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            bottom: -200px;
+            right: -200px;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, rgba(6, 182, 212, 0) 70%);
+            border-radius: 50%;
+            filter: blur(50px);
+            pointer-events: none;
+            animation: orbFloat 10s ease-in-out infinite alternate-reverse;
+        }
+
+        @keyframes orbFloat {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(40px, 30px) scale(1.08); }
+        }
+
+        /* Main Container */
+        .login-wrapper {
+            width: 100%;
+            max-width: 1080px;
+            margin: auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Left Showcase Column: Biometric HUD Display */
+        .hud-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            border-radius: 28px;
+            box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.05);
+            padding: 36px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Interactive Target Scanner Simulator Box */
+        .scanner-sim-box {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Scanning Laser Line */
+        .scanner-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #10b981, #34d399, #10b981, transparent);
+            box-shadow: 0 0 16px 2px rgba(16, 185, 129, 0.75);
+            top: 0;
+            left: 0;
+            animation: laserScan 3s ease-in-out infinite alternate;
+            z-index: 3;
+        }
+
+        @keyframes laserScan {
+            0% { top: 5%; opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { top: 92%; opacity: 0.4; }
+        }
+
+        /* HUD Reticle Corners */
+        .reticle-box {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border: 1px dashed rgba(16, 185, 129, 0.4);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+
+        .reticle-corner {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-color: #10b981;
+            border-style: solid;
+        }
+        .rc-tl { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-top-left-radius: 6px; }
+        .rc-tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-top-right-radius: 6px; }
+        .rc-bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-bottom-left-radius: 6px; }
+        .rc-br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-bottom-right-radius: 6px; }
+
+        /* Sim Target Avatar */
+        .sim-avatar-glow {
+            width: 86px;
+            height: 86px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .sim-avatar-icon {
+            font-size: 3rem;
+            color: #34d399;
+            filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.6));
+        }
+
+        /* HUD Live Floating Telemetry Tags */
+        .hud-tag {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: #ecfdf5;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            z-index: 4;
+            letter-spacing: 0.5px;
+        }
+        .tag-top-left { top: 12px; left: 12px; }
+        .tag-top-right { top: 12px; right: 12px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); }
+        .tag-bottom { bottom: 12px; left: 50%; transform: translateX(-50%); width: 85%; text-align: center; white-space: nowrap; }
+
+        /* Feature Chips */
+        .feature-chip {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 12px 16px;
+            border-radius: 16px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+
+        .feature-chip:hover {
+            transform: translateY(-2px);
+            border-color: rgba(16, 185, 129, 0.4);
+            box-shadow: 0 8px 16px -4px rgba(16, 185, 129, 0.1);
+        }
+
+        .chip-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            flex-shrink: 0;
+        }
+
+        /* Right Portal Column */
+        .portal-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 28px;
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.1), 0 8px 16px -4px rgba(15, 23, 42, 0.03);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Brand Badge */
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 9999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #059669;
+        }
+
+        .clerk-container {
+            min-height: 290px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Seamless clerk element styling */
+        .cl-card, .cl-rootBox {
+            box-shadow: none !important;
+            background: transparent !important;
+            width: 100% !important;
+        }
+        .cl-signIn-root {
+            width: 100% !important;
+        }
+
+        /* Live pulsating dot */
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #10b981;
+            display: inline-block;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulseDot 2s infinite;
+        }
+
+        @keyframes pulseDot {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+    </style>
 </head>
-<body class="d-flex align-items-center justify-content-center min-vh-100 p-3">
+<body>
+
+    <!-- Ambient glowing lights -->
+    <div class="ambient-glow-1"></div>
+    <div class="ambient-glow-2"></div>
 
     <!-- Toast Notifications -->
     <div class="toast-container-custom" id="toastContainer">
@@ -35,110 +324,369 @@
         {% endwith %}
     </div>
 
-    <!-- Login Container -->
-    <div class="glass-card p-4 p-md-5 max-w-md w-100 rounded-4 shadow-lg text-center" style="max-width: 440px;">
-        <!-- Logo -->
-        <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle bg-emerald-subtle mb-3">
-            <i class="bi bi-crosshair text-emerald display-5"></i>
-        </div>
+    <!-- Main Container Layout -->
+    <div class="container login-wrapper p-3 p-md-4">
+        <div class="row g-4 align-items-stretch">
+            
+            <!-- Left Side: Interactive Biometric HUD Showcase -->
+            <div class="col-lg-6 d-none d-lg-block">
+                <div class="hud-card">
+                    <!-- Brand Top Header -->
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="brand-badge">
+                                <span class="live-dot"></span>
+                                <span>AI BIOMETRIC SUITE 2.0</span>
+                            </div>
+                            <span class="badge bg-light text-muted border extra-small px-2.5 py-1.5 font-monospace">
+                                <i class="bi bi-clock me-1"></i><span id="liveClock">00:00:00 UTC</span>
+                            </span>
+                        </div>
 
-        <h3 class="fw-bold text-light mb-1">FaceTrack <span class="text-emerald">AI</span></h3>
-        <p class="text-muted extra-small mb-4">Real-Time Target Face Tracking & Live Detection System</p>
+                        <h2 class="fw-bold tracking-tight mb-2" style="color: #0f172a; font-size: 2.1rem; line-height: 1.2;">
+                            Real-Time Target <br><span class="text-emerald">Face Intelligence</span>
+                        </h2>
+                        <p class="text-muted small mb-4">
+                            High-precision facial recognition with 128-dimensional biometric embeddings, dynamic liveness checking, and secure operator verification.
+                        </p>
 
-        <!-- Google Sign-In Section -->
-        <div class="p-3 rounded-3 glass-card mb-4 border border-secondary border-opacity-10">
-            <h6 class="fw-bold text-light small mb-2"><i class="bi bi-google text-danger me-1"></i> Sign In with Google Account</h6>
-            <p class="extra-small text-muted mb-3">Each account securely stores its own target persons & detection logs.</p>
+                        <!-- Simulated Interactive Biometric Radar / Scanner -->
+                        <div class="scanner-sim-box mb-4">
+                            <div class="scanner-line"></div>
+                            
+                            <!-- Telemetry HUD Tags -->
+                            <div class="hud-tag tag-top-left">
+                                <i class="bi bi-record-circle text-danger me-1"></i>REC • 60 FPS
+                            </div>
+                            <div class="hud-tag tag-top-right">
+                                <i class="bi bi-cpu me-1"></i>HOG+CNN 128D
+                            </div>
 
-            <!-- Google One Tap / Button Container -->
-            <div id="g_id_onload"
-                 data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
-                 data-context="signin"
-                 data-ux_mode="popup"
-                 data-callback="handleGoogleCredentialResponse"
-                 data-auto_prompt="false">
-            </div>
+                            <!-- Reticle Target Box -->
+                            <div class="reticle-box" id="simReticle">
+                                <div class="reticle-corner rc-tl"></div>
+                                <div class="reticle-corner rc-tr"></div>
+                                <div class="reticle-corner rc-bl"></div>
+                                <div class="reticle-corner rc-br"></div>
+                                <div class="sim-avatar-glow">
+                                    <i class="bi bi-person-bounding-box sim-avatar-icon"></i>
+                                </div>
+                            </div>
 
-            <div class="g_id_signin d-flex justify-content-center"
-                 data-type="standard"
-                 data-shape="pill"
-                 data-theme="filled_blue"
-                 data-text="signin_with"
-                 data-size="large"
-                 data-logo_alignment="left">
-            </div>
-        </div>
+                            <div class="hud-tag tag-bottom text-truncate">
+                                <span class="text-emerald">● VERIFIED MATCH</span>: Rushikesh Jadhav (99.4%)
+                            </div>
+                        </div>
+                    </div>
 
-        <div class="position-relative my-4">
-            <hr class="border-secondary opacity-25">
-            <span class="position-absolute top-50 start-50 translate-middle px-3 extra-small text-muted bg-dark rounded-pill">OR QUICK SIGN-IN</span>
-        </div>
+                    <!-- Interactive Technology Chips -->
+                    <div class="d-flex flex-column gap-2 mt-auto">
+                        <div class="feature-chip">
+                            <div class="chip-icon bg-emerald-subtle text-emerald">
+                                <i class="bi bi-crosshair"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold small theme-text">Real-Time Camera Scanner</div>
+                                <div class="extra-small text-muted">WebRTC stream matching with sub-15ms recognition speed.</div>
+                            </div>
+                        </div>
 
-        <!-- Quick Email Sign-In Form -->
-        <form action="{{ url_for('auth.login') }}" method="POST" class="text-start">
-            <div class="mb-3">
-                <label class="form-label extra-small fw-semibold text-light">Google Email ID</label>
-                <div class="input-group">
-                    <span class="input-group-text glass-input border-end-0 text-muted"><i class="bi bi-envelope-at-fill"></i></span>
-                    <input type="email" name="email" class="form-control glass-input border-start-0" placeholder="e.g. user@gmail.com" required>
+                        <div class="feature-chip">
+                            <div class="chip-icon bg-cyan-subtle text-cyan" style="background: rgba(6, 182, 212, 0.1) !important;">
+                                <i class="bi bi-shield-check"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold small theme-text">Liveness & Anti-Spoof Guard</div>
+                                <div class="extra-small text-muted">Blink frequency, smile ratios, and face-mask posture metrics.</div>
+                            </div>
+                        </div>
+
+                        <div class="feature-chip">
+                            <div class="chip-icon bg-purple-subtle text-purple" style="background: rgba(139, 92, 246, 0.1) !important;">
+                                <i class="bi bi-database-lock"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold small theme-text">Decentralized SQLite Isolation</div>
+                                <div class="extra-small text-muted">Zero cloud credential leaks; user biometrics stored safely in database.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Note -->
+                    <div class="pt-3 mt-3 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center extra-small text-muted">
+                        <span><i class="bi bi-shield-fill-check text-emerald me-1"></i> Enterprise Grade Security</span>
+                        <span class="font-monospace">v2.4 Production</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="mb-4">
-                <label class="form-label extra-small fw-semibold text-light">Your Name (Optional)</label>
-                <input type="text" name="name" class="form-control glass-input" placeholder="e.g. Alex Smith">
+            <!-- Right Side: Operator Sign-In Hub -->
+            <div class="col-lg-6">
+                <div class="portal-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <!-- Header -->
+                        <div class="text-center text-lg-start mb-4">
+                            <div class="d-inline-flex align-items-center justify-content-center p-2.5 rounded-3 bg-emerald-subtle text-emerald mb-3">
+                                <i class="bi bi-crosshair fs-4"></i>
+                            </div>
+                            <h3 class="fw-bold tracking-tight mb-1" style="color: #0f172a;">
+                                Welcome to FaceTrack <span class="text-emerald">AI</span>
+                            </h3>
+                            <p class="text-muted small mb-0">Sign in to access your surveillance targets and live detection dashboard.</p>
+                        </div>
+
+                        <!-- Status Message Banner -->
+                        <div id="authStatusBanner" class="alert alert-info py-2 px-3 extra-small rounded-3 d-none align-items-center justify-content-center gap-2 mb-3">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                            <span id="authStatusText">Authenticating with Clerk...</span>
+                        </div>
+
+                        <!-- Clerk Auth Mount Section -->
+                        <div class="p-3 p-md-4 rounded-4 mb-4 border border-secondary border-opacity-10" style="background: #f8fafc;">
+                            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-10">
+                                <span class="fw-bold small theme-text d-flex align-items-center gap-1.5">
+                                    <i class="bi bi-google text-danger"></i>
+                                    <span>Google / Clerk Authentication</span>
+                                </span>
+                                <span class="badge bg-emerald-subtle text-emerald extra-small rounded-pill">Encrypted</span>
+                            </div>
+
+                            <!-- Clerk Loading Spinner -->
+                            <div id="clerk-loading" class="text-center py-4">
+                                <div class="spinner-border text-emerald spinner-border-sm mb-2" role="status"></div>
+                                <div class="extra-small text-muted">Preparing secure login interface...</div>
+                            </div>
+
+                            <!-- Clerk Mount Target -->
+                            <div id="clerk-sign-in" class="clerk-container"></div>
+
+                            <!-- Missing Config Notice -->
+                            {% if not clerk_publishable_key %}
+                            <div class="alert alert-warning py-2.5 px-3 extra-small rounded-3 text-center mb-0">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                Missing <code>CLERK_PUBLISHABLE_KEY</code> in environment.
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Quick Manual Direct Login (Accordion Fallback) -->
+                        <div class="text-center">
+                            <a class="extra-small text-muted text-decoration-none fw-medium" data-bs-toggle="collapse" href="#manualLoginCollapse" role="button" aria-expanded="false">
+                                <i class="bi bi-chevron-down me-1"></i> Or quick operator login without Google
+                            </a>
+                        </div>
+
+                        <div class="collapse mt-3" id="manualLoginCollapse">
+                            <div class="p-3 rounded-3 border border-secondary border-opacity-10" style="background: #f8fafc;">
+                                <form action="{{ url_for('auth.login') }}" method="POST">
+                                    <div class="mb-3 text-start">
+                                        <label class="form-label extra-small fw-semibold text-muted">Operator Email</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-envelope-at-fill"></i></span>
+                                            <input type="email" name="email" class="form-control bg-white border-start-0" placeholder="admin@facetrack.ai" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 text-start">
+                                        <label class="form-label extra-small fw-semibold text-muted">Operator Name (Optional)</label>
+                                        <input type="text" name="name" class="form-control bg-white" placeholder="Operator Alex">
+                                    </div>
+
+                                    <button type="submit" class="btn btn-emerald w-100 rounded-pill py-2 extra-small fw-bold d-flex align-items-center justify-content-center gap-2">
+                                        <span>Direct Access</span>
+                                        <i class="bi bi-arrow-right"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 text-center extra-small text-muted">
+                        <i class="bi bi-lock-fill text-emerald me-1"></i> Zero-Knowledge Identity Verification • High-Resolution Biometrics
+                    </div>
+                </div>
             </div>
 
-            <button type="submit" class="btn btn-emerald w-100 rounded-pill py-2.5 fw-bold d-flex align-items-center justify-content-center gap-2">
-                <span>Access Target Tracker</span>
-                <i class="bi bi-arrow-right"></i>
-            </button>
-        </form>
-
-        <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 extra-small text-muted">
-            <i class="bi bi-shield-lock me-1 text-emerald"></i> Multi-Tenant Account Isolation Active
         </div>
     </div>
 
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Interactive Clock & Reticle Simulation -->
     <script>
-    // Handle JWT Response from official Google Identity Services button
-    function handleGoogleCredentialResponse(response) {
-        if (!response.credential) return;
-
-        // Decode Google JWT payload
-        try {
-            const base64Url = response.credential.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-
-            const payload = JSON.parse(jsonPayload);
-            
-            fetch('/login/google', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: payload.email,
-                    name: payload.name,
-                    google_id: payload.sub,
-                    avatar_url: payload.picture
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = data.redirect || '/';
-                } else {
-                    alert(data.message || "Google Authentication failed");
-                }
-            })
-            .catch(err => alert("Sign-in error: " + err.message));
-
-        } catch (e) {
-            console.error("JWT parse error:", e);
+    function updateClock() {
+        const clockEl = document.getElementById('liveClock');
+        if (clockEl) {
+            const now = new Date();
+            clockEl.textContent = now.toTimeString().split(' ')[0] + ' LOCAL';
         }
     }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Subtle interactive reticle breathing on hover
+    const reticle = document.getElementById('simReticle');
+    if (reticle) {
+        reticle.addEventListener('mouseenter', () => {
+            reticle.style.transform = 'scale(1.08)';
+            reticle.style.borderColor = '#10b981';
+        });
+        reticle.addEventListener('mouseleave', () => {
+            reticle.style.transform = 'scale(1)';
+            reticle.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        });
+    }
+    </script>
+
+    <!-- Clerk Integration Script with Light Theme Styling -->
+    <script>
+    const CLERK_PUBLISHABLE_KEY = "{{ clerk_publishable_key }}";
+
+    function showStatus(message) {
+        const banner = document.getElementById('authStatusBanner');
+        const text = document.getElementById('authStatusText');
+        if (banner && text) {
+            text.textContent = message;
+            banner.classList.remove('d-none');
+            banner.classList.add('d-flex');
+        }
+    }
+
+    async function syncClerkUserToBackend(user) {
+        showStatus('Verifying operator credentials & preparing dashboard...');
+        try {
+            let token = null;
+            if (window.Clerk && window.Clerk.session) {
+                try {
+                    token = await window.Clerk.session.getToken();
+                } catch (e) {
+                    console.warn("Could not retrieve JWT session token:", e);
+                }
+            }
+
+            const email = (user.primaryEmailAddress && user.primaryEmailAddress.emailAddress)
+                || (user.emailAddresses && user.emailAddresses.length > 0 ? user.emailAddresses[0].emailAddress : '')
+                || '';
+
+            const name = user.fullName 
+                || `${user.firstName || ''} ${user.lastName || ''}`.trim() 
+                || (email ? email.split('@')[0] : 'Operator');
+
+            const payload = {
+                clerk_id: user.id,
+                email: email,
+                name: name,
+                avatar_url: user.imageUrl || '',
+                token: token
+            };
+
+            const response = await fetch("{{ url_for('auth.clerk_auth') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showStatus('Access Granted! Redirecting to surveillance feed...');
+                window.location.href = data.redirect || "{{ url_for('tracker.live_tracker') }}";
+            } else {
+                alert(data.message || 'Clerk sign-in failed on server.');
+                const banner = document.getElementById('authStatusBanner');
+                if (banner) banner.classList.add('d-none');
+            }
+        } catch (err) {
+            console.error('Session synchronization error:', err);
+            alert('Failed to connect to authentication backend: ' + err.message);
+            const banner = document.getElementById('authStatusBanner');
+            if (banner) banner.classList.add('d-none');
+        }
+    }
+
+    window.addEventListener('load', async function () {
+        if (!CLERK_PUBLISHABLE_KEY) {
+            const loader = document.getElementById('clerk-loading');
+            if (loader) loader.innerHTML = '<div class="text-warning extra-small">Clerk key is not configured.</div>';
+            return;
+        }
+
+        let retries = 0;
+        const checkClerkInterval = setInterval(async () => {
+            retries++;
+            const ready = window.Clerk && window.__internal_ClerkUICtor;
+            if (ready) {
+                clearInterval(checkClerkInterval);
+                try {
+                    await window.Clerk.load({
+                        ui: { ClerkUI: window.__internal_ClerkUICtor },
+                        appearance: {
+                            variables: {
+                                colorPrimary: '#10b981',
+                                colorText: '#0f172a',
+                                colorTextSecondary: '#64748b',
+                                colorBackground: '#ffffff',
+                                colorInputBackground: '#ffffff',
+                                colorInputBorder: '#e2e8f0',
+                                borderRadius: '0.75rem',
+                                fontFamily: "'Outfit', sans-serif"
+                            },
+                            elements: {
+                                card: {
+                                    boxShadow: 'none',
+                                    border: 'none',
+                                    background: 'transparent'
+                                },
+                                formButtonPrimary: {
+                                    backgroundColor: '#10b981',
+                                    '&:hover': { backgroundColor: '#059669' }
+                                }
+                            }
+                        }
+                    });
+                    
+                    const loader = document.getElementById('clerk-loading');
+                    if (loader) loader.style.display = 'none';
+
+                    // If user is already authenticated on Clerk
+                    if (window.Clerk.user) {
+                        await syncClerkUserToBackend(window.Clerk.user);
+                        return;
+                    }
+
+                    // Mount Clerk SignIn Component
+                    const signInDiv = document.getElementById('clerk-sign-in');
+                    if (signInDiv && !signInDiv.children.length) {
+                        window.Clerk.mountSignIn(signInDiv);
+                    }
+
+                    // Attach listener for post-sign-in event
+                    window.Clerk.addListener(async ({ user }) => {
+                        if (user) {
+                            await syncClerkUserToBackend(user);
+                        }
+                    });
+
+                } catch (loadError) {
+                    console.warn('Clerk initialization note:', loadError);
+                    const signInDiv = document.getElementById('clerk-sign-in');
+                    if (!signInDiv || !signInDiv.children.length) {
+                        const loader = document.getElementById('clerk-loading');
+                        if (loader) {
+                            loader.innerHTML = `<div class="text-danger extra-small">Failed to initialize Clerk: ${loadError.message}</div>`;
+                        }
+                    }
+                }
+            } else if (retries > 100) {
+                clearInterval(checkClerkInterval);
+                const loader = document.getElementById('clerk-loading');
+                if (loader) {
+                    loader.innerHTML = '<div class="text-muted extra-small">Clerk script took too long to load. Use the direct sign-in below.</div>';
+                }
+            }
+        }, 100);
+    });
     </script>
 </body>
 </html>

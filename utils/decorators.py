@@ -8,10 +8,11 @@ def login_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'admin_id' not in session and 'student_id' not in session:
+        if 'user_id' not in session and 'admin_id' not in session and 'student_id' not in session:
             flash("Please log in to access this page.", "warning")
             return redirect(url_for('auth.login', next=request.url))
         return f(*args, **kwargs)
+
     return decorated_function
 
 def admin_required(f):
