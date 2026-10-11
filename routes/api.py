@@ -19,6 +19,48 @@ api_bp = Blueprint('api', __name__)
 # Maps target_id -> last_logged_timestamp
 DETECTION_COOLDOWN = {}
 
+@api_bp.route('/api/debug', methods=['GET'])
+def debug_status():
+    import traceback
+    from models.db import _get_raw_connection, init_db
+    info = {
+        'is_vercel': Config.IS_VERCEL,
+        'has_turso_url': bool(Config.TURSO_DATABASE_URL),
+        'turso_url_preview': Config.TURSO_DATABASE_URL[:20] if Config.TURSO_DATABASE_URL else '',
+        'has_turso_token': bool(Config.TURSO_AUTH_TOKEN),
+        'face_rec_available': getattr(face_service, 'FACE_REC_AVAILABLE', False)
+    }
+    
+    # Auto-initialize DB schema if needed
+    try:
+        init_db()
+        info['init_db_success'] = True
+    except Exception as e:
+        info['init_db_error'] = str(e)
+
+    # Check connection and tables
+    try:
+        conn, is_turso = _get_raw_connection()
+        info['connected_to'] = 'turso' if is_turso else 'sqlite'
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        rows = cur.fetchall()
+        tables = [row[0] for row in rows]
+        info['tables'] = tables
+        
+        # Check target count
+        if 'targets' in tables:
+            cur.execute("SELECT COUNT(*) FROM targets")
+            info['targets_count'] = cur.fetchone()[0]
+            cur.execute("SELECT target_id, name FROM targets LIMIT 5")
+            info['sample_targets'] = [dict(r) if hasattr(r, 'keys') else r[0] for r in cur.fetchall()]
+        conn.close()
+    except Exception as e:
+        info['db_error'] = str(e)
+        info['db_trace'] = traceback.format_exc()
+
+    return jsonify(info)
+
 @api_bp.route('/api/recognize_frame', methods=['POST'])
 def recognize_frame():
     """
