@@ -59,12 +59,12 @@ def uploaded_file(filename):
 # 4. Global Error Handlers
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('base.html', active_page=''), 404
+    return render_template('error.html', error_msg="The requested page was not found.", active_page=''), 404
 
 @app.errorhandler(500)
 def server_error(e):
     log_event("ERROR", "System", f"Internal Server Error: {str(e)}")
-    return render_template('base.html', active_page=''), 500
+    return render_template('error.html', error_msg=f"Internal Server Notice: {str(e)}", active_page=''), 500
 
 # 5. Boot Application
 if __name__ == '__main__':

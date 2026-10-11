@@ -14,12 +14,32 @@ def require_authentication():
         return redirect(url_for('auth.login'))
 
 @tracker_bp.route('/')
-
 def live_tracker():
     """Main dashboard & live face tracking feed view."""
-    stats = get_tracker_stats()
-    targets = get_all_targets()
-    recent_detections = get_detection_logs(limit=10)
+    try:
+        stats = get_tracker_stats()
+    except Exception as e:
+        print(f"[WARN] get_tracker_stats failed: {e}")
+        stats = {
+            'total_targets': 0,
+            'targets_spotted_today': 0,
+            'today_detections': 0,
+            'last_target_name': 'None',
+            'last_detection_time': 'Never'
+        }
+
+    try:
+        targets = get_all_targets()
+    except Exception as e:
+        print(f"[WARN] get_all_targets failed: {e}")
+        targets = []
+
+    try:
+        recent_detections = get_detection_logs(limit=10)
+    except Exception as e:
+        print(f"[WARN] get_detection_logs failed: {e}")
+        recent_detections = []
+
     return render_template(
         'tracker.html', 
         active_page='tracker', 
