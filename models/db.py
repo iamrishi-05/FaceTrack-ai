@@ -6,6 +6,27 @@ from config import Config
 # Helper context manager for database connections
 @contextmanager
 def get_db_connection():
+    if Config.TURSO_DATABASE_URL and Config.TURSO_AUTH_TOKEN:
+        try:
+            import turso_serverless
+            # Connect to Turso Cloud libSQL database over HTTP
+            conn = turso_serverless.connect(
+                Config.TURSO_DATABASE_URL,
+                auth_token=Config.TURSO_AUTH_TOKEN
+            )
+            conn.row_factory = turso_serverless.Row
+            try:
+                yield conn
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                raise e
+            finally:
+                conn.close()
+            return
+        except Exception as e:
+            print(f"[WARN] Failed to connect to Turso Cloud DB, falling back to local SQLite: {e}")
+
     conn = sqlite3.connect(Config.DATABASE_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row  # Enables column access by name like dictionary
     conn.execute("PRAGMA foreign_keys = ON")  # Enforce foreign key constraints
@@ -20,17 +41,21 @@ def get_db_connection():
         conn.close()
 
 def init_db():
-    """Initializes SQLite database for direct access Target Face Tracking."""
-    os.makedirs(os.path.dirname(Config.DATABASE_PATH), exist_ok=True)
+    """Initializes SQLite or Turso Cloud database for direct access Target Face Tracking."""
+    if not (Config.TURSO_DATABASE_URL and Config.TURSO_AUTH_TOKEN):
+        os.makedirs(os.path.dirname(Config.DATABASE_PATH), exist_ok=True)
     
     with get_db_connection() as conn:
         cursor = conn.cursor()
         
         # Check settings table schema
-        cursor.execute("PRAGMA table_info(settings)")
-        settings_cols = [col[1] for col in cursor.fetchall()]
-        if 'user_id' in settings_cols:
-            cursor.execute("DROP TABLE IF EXISTS settings")
+        try:
+            cursor.execute("PRAGMA table_info(settings)")
+            settings_cols = [col[1] for col in cursor.fetchall()]
+            if 'user_id' in settings_cols:
+                cursor.execute("DROP TABLE IF EXISTS settings")
+        except Exception:
+            pass
 
         # Users Table (Clerk / Google accounts)
         cursor.execute('''

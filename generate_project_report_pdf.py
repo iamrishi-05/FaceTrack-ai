@@ -187,22 +187,22 @@ def build_pdf(filename="FaceTrack_AI_Project_Report.pdf"):
     # COVER / HEADER BANNER
     # ==========================
     story.append(Paragraph("FACETRACK AI", title_style))
-    story.append(Paragraph("Smart Attendance Management & Real-Time Target Biometrics System", subtitle_style))
+    story.append(Paragraph("Multi-Sector Facial Intelligence, Biometric Verification & Real-Time Person Analytics Platform", subtitle_style))
     story.append(HRFlowable(width="100%", thickness=2, color=COLOR_ACCENT, spaceAfter=12))
 
     # Metadata Summary Box
     meta_data = [
         [
-            Paragraph("<b>Project Domain:</b> Artificial Intelligence / Computer Vision", table_cell_style),
-            Paragraph("<b>Architecture:</b> Flask MVC + WebRTC Client HUD", table_cell_style)
+            Paragraph("<b>Project Domain:</b> Multi-Sector Computer Vision & Biometrics", table_cell_style),
+            Paragraph("<b>Architecture:</b> Modular MVC + WebRTC Stream HUD", table_cell_style)
         ],
         [
-            Paragraph("<b>Primary Backend:</b> Python 3.11+ / OpenCV / Dlib", table_cell_style),
-            Paragraph("<b>Storage:</b> SQLite Relational Database", table_cell_style)
+            Paragraph("<b>Primary Backend:</b> Python 3.10+ / OpenCV / Dlib ResNet", table_cell_style),
+            Paragraph("<b>Storage:</b> SQLite Relational Database & Vector Vault", table_cell_style)
         ],
         [
             Paragraph("<b>Date of Report:</b> " + datetime.now().strftime("%B %d, %Y"), table_cell_style),
-            Paragraph("<b>Status:</b> Production Ready / Tested", table_cell_style)
+            Paragraph("<b>Operational Scope:</b> 10 Enterprise & Public Safety Sectors", table_cell_style)
         ]
     ]
     meta_table = Table(meta_data, colWidths=[250, 254])
@@ -223,43 +223,99 @@ def build_pdf(filename="FaceTrack_AI_Project_Report.pdf"):
     # ==========================
     story.append(Paragraph("1. Executive Summary & Abstract", h1_style))
     story.append(Paragraph(
-        "<b>FaceTrack AI</b> is a high-performance, commercial-grade Computer Vision application engineered to "
-        "automate two critical operational challenges: <b>Real-Time Target Face Tracking</b> and <b>Contactless "
-        "Student Attendance Management</b>. Built using Python, Flask, OpenCV, Dlib, and SQLite, FaceTrack AI "
-        "captures video frames directly from client browser WebRTC video streams without third-party plugins. "
-        "The system decodes incoming frames, computes 128-dimensional facial metric embeddings via a Deep Residual "
-        "Network, matches identities using Euclidean distance against enrolled profiles, and executes simultaneous "
-        "<b>liveness and facial feature analysis</b> (Eye Blink detection, Smile detection, Emotion classification, "
-        "and Surgical Face Mask verification).",
+        "<b>FaceTrack AI</b> is a commercial-grade, multi-sector Computer Vision and Facial Intelligence platform "
+        "engineered to deliver real-time person detection, 128-dimensional deep metric vector matching, anti-spoofing "
+        "liveness verification, and spatial trajectory analytics across <b>10 critical operational fields</b>. "
+        "While initially conceived as an institutional attendance tracker, the platform's core architecture has been "
+        "generalized into a domain-agnostic biometric engine capable of processing video frames from client WebRTC "
+        "streams, RTSP/ONVIF security cameras, and archival CCTV footage.",
         body_style
     ))
     story.append(Paragraph(
-        "To ensure continuous reliability across diverse computing environments, the system features a "
-        "<b>Dual-Engine Fallback Pipeline</b>: it utilizes Dlib's 68-point facial landmark model when available, and "
-        "automatically cascades to OpenCV's Haar Cascade with spatial color-moment feature descriptors on minimal "
-        "CPU configurations, guaranteeing zero application crashes.",
+        "The system decodes incoming video buffers, computes 128-dimensional Euclidean facial embeddings using a Deep "
+        "Residual Network (ResNet), checks identities against indexed reference profiles, and performs concurrent "
+        "<b>liveness and feature analysis</b> (Eye Blink EAR, Smile MAR, Emotion classification, and Mask detection). "
+        "To guarantee zero service disruptions across diverse CPU and server environments, FaceTrack AI incorporates a "
+        "<b>Dual-Engine Fallback Pipeline</b> that seamlessly cascades from Dlib's 68-point landmark model to OpenCV "
+        "Haar Cascades with spatial color-moment descriptors whenever native deep-learning dependencies are unavailable.",
         body_style
     ))
     story.append(Spacer(1, 8))
 
     # ==========================
-    # 2. PROBLEM STATEMENT & MOTIVATION
+    # 2. OPERATIONAL SCOPE ACROSS 10 CORE SECTORS
     # ==========================
-    story.append(Paragraph("2. Problem Statement & Motivation", h1_style))
+    story.append(Paragraph("2. Operational Scope Across 10 Core Industry Sectors", h1_style))
     story.append(Paragraph(
-        "Organizations and educational institutions face severe limitations with legacy attendance and surveillance methods:",
+        "FaceTrack AI provides configurable domain engines tailored for distinct real-world environments:",
         body_style
     ))
-    story.append(Paragraph("• <b>Manual Registers:</b> Incur massive administrative labor, high error rates, paper waste, and proxy manipulation.", bullet_style))
-    story.append(Paragraph("• <b>Fingerprint Biometrics:</b> Require physical contact (unhygienic), suffer sensor degradation, and cause long queue bottlenecks.", bullet_style))
-    story.append(Paragraph("• <b>RFID Card Swiping:</b> Highly susceptible to 'buddy-punching' (students scanning badges for absent peers) and lost cards.", bullet_style))
-    story.append(Paragraph("• <b>Heavy Surveillance Solutions:</b> Require expensive proprietary GPU servers, native desktop agents, and dedicated IP cameras.", bullet_style))
-    story.append(Paragraph(
-        "<b>FaceTrack AI solves these issues</b> by delivering zero-touch biometric verification through ordinary webcams, "
-        "browser-level canvas HUD rendering, anti-spoofing liveness checks, and instant administrative report exports.",
-        body_style
-    ))
-    story.append(Spacer(1, 8))
+
+    sector_table_data = [
+        [Paragraph("Sector", table_header_style), Paragraph("Primary Objective & Operational Workflow", table_header_style), Paragraph("Safety / Privacy Protocol", table_header_style)],
+        [
+            Paragraph("<b>1. Police Assistance & POI Alerts</b>", table_cell_style),
+            Paragraph("Review CCTV footage in crowded railway stations, bus stands, and checkpoints; flag matches against authorized watchlists.", table_cell_style),
+            Paragraph("Mandatory Human-in-the-Loop (HITL) review before field action.", table_cell_style)
+        ],
+        [
+            Paragraph("<b>2. Missing-Person Assistance</b>", table_cell_style),
+            Paragraph("Scan live and historical footage using approved reference images to accelerate search-and-rescue.", table_cell_style),
+            Paragraph("Chronological sighting trail with confidence score triage.", table_cell_style)
+        ],
+        [
+            Paragraph("<b>3. Smart College Attendance</b>", table_cell_style),
+            Paragraph("Simultaneously identify enrolled students, prevent proxy check-ins, eliminate duplicate entries, and export reports.", table_cell_style),
+            Paragraph("Automated daily/subject-wise PDF & Excel ledgers.", table_cell_style)
+        ],
+        [
+            Paragraph("<b>4. Workplace Access Management</b>", table_cell_style),
+            Paragraph("Verify enrolled employees at turnstiles/doors, record ingress/egress, and flag unlisted or unauthorized personnel.", table_cell_style),
+            Paragraph("Sub-second access verification and security alerts.", table_cell_style)
+        ],
+        [
+            Paragraph("<b>5. Hospital & Patient Assistance</b>", table_cell_style),
+            Paragraph("Identify registered patients in medical facilities who may become disoriented or wander into danger.", table_cell_style),
+            Paragraph("Strict consent-based enrollment; silent nursing alerts.", table_cell_style)
+        ],
+        [
+            Paragraph("<b>6. Transport Hub Security</b>", table_cell_style),
+            Paragraph("Trace movement of persons of interest across airport terminals, railway platforms, and transit gates.", table_cell_style),
+            Paragraph("Multi-camera spatial trajectory mapping under access controls.", table_cell_style)
+        ],
+        [
+            Paragraph("<b>7. Public-Event Safety</b>", table_cell_style),
+            Paragraph("Concert & festival safety: authorized POI review plus non-biometric crowd counting and density alerts.", table_cell_style),
+            Paragraph("Anonymous crowd analytics; no profiling of general public.", table_cell_style)
+        ],
+        [
+            Paragraph("<b>8. Elderly & Vulnerable Care</b>", table_cell_style),
+            Paragraph("Assist caregivers in assisted living homes in locating registered residents who may wander away.", table_cell_style),
+            Paragraph("Consent-governed resident safety and perimeter gate alerts.", table_cell_style)
+        ],
+        [
+            Paragraph("<b>9. Retail & Facility Security</b>", table_cell_style),
+            Paragraph("Deter repeat organized theft offenders, guard staff-only inventory zones, and greet opt-in VIP guests.", table_cell_style),
+            Paragraph("Discrete security notifications; strict loss prevention limits.", table_cell_style)
+        ],
+        [
+            Paragraph("<b>10. Real-Time Tracking & Analytics</b>", table_cell_style),
+            Paragraph("Cross-camera re-identification (Re-ID), dwell time calculation, spatial heatmaps, and path reconstruction.", table_cell_style),
+            Paragraph("Anonymized trajectory hashing; zero raw frame retention.", table_cell_style)
+        ]
+    ]
+
+    sector_table = Table(sector_table_data, colWidths=[110, 244, 150])
+    sector_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), COLOR_PRIMARY),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('GRID', (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, COLOR_BG_LIGHT]),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    story.append(sector_table)
+    story.append(Spacer(1, 10))
 
     # ==========================
     # 3. SYSTEM ARCHITECTURE & PIPELINE
@@ -520,8 +576,8 @@ def build_pdf(filename="FaceTrack_AI_Project_Report.pdf"):
         bullet_style
     ))
     story.append(Paragraph(
-        "• <b>Automated Exporting Engine:</b> Compiles zebra-striped PDF attendance sheets via ReportLab and formatted Excel workbooks "
-        "via OpenPyXL/Pandas with a single click.",
+        "• <b>Automated Exporting Engine:</b> Compiles zebra-striped PDF incident summaries, detection audits, and ledgers "
+        "via ReportLab and formatted Excel workbooks via OpenPyXL/Pandas with a single click.",
         bullet_style
     ))
     story.append(Paragraph(
@@ -590,8 +646,9 @@ def build_pdf(filename="FaceTrack_AI_Project_Report.pdf"):
     story.append(Paragraph(
         "<b>Conclusion:</b><br/>"
         "FaceTrack AI demonstrates a robust, production-ready implementation of modern computer vision. By combining deep metric "
-        "face embeddings, real-time liveness analysis, anti-flooding rate limiting, and an intuitive browser-based Glassmorphism UI, "
-        "the project delivers a secure, touchless, and versatile biometric surveillance and attendance platform.",
+        "face embeddings, real-time liveness analysis, anti-flooding rate limiting, Human-in-the-Loop verification protocols, "
+        "and an intuitive browser-based Glassmorphism UI, the project delivers a secure, touchless, and versatile biometric "
+        "surveillance, tracking, and analytics platform across public safety, institutional, healthcare, transit, and enterprise operations.",
         body_style
     ))
 

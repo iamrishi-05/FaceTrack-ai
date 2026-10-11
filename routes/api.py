@@ -164,24 +164,37 @@ def upload_target():
             filename = f"target_{int(time.time())}_{file.filename}"
             filepath = os.path.join(target_upload_dir, filename)
             file.save(filepath)
-            photo_saved_path = f"/uploads/targets/{filename}"
+            
+            # Read file bytes to produce permanent base64 data URI for cloud database persistence
+            try:
+                with open(filepath, 'rb') as img_f:
+                    b64_content = base64.b64encode(img_f.read()).decode('utf-8')
+                    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpeg'
+                    mime = 'image/png' if ext == 'png' else 'image/jpeg'
+                    photo_saved_path = f"data:{mime};base64,{b64_content}"
+            except Exception:
+                photo_saved_path = f"/uploads/targets/{filename}"
             
             # Extract encodings from uploaded file
             encodings = face_service.extract_encodings_from_file(filepath)
 
         # Check if base64 snapshot provided
         elif (request.form.get('photo_base64') or (request.is_json and request.json.get('photo_base64'))):
-            base64_str = request.form.get('photo_base64') or request.json.get('photo_base64')
+            raw_b64 = request.form.get('photo_base64') or request.json.get('photo_base64')
             filename = f"target_{int(time.time())}.jpg"
             filepath = os.path.join(target_upload_dir, filename)
             
             # Save base64 to image file
-            if ',' in base64_str:
-                base64_str = base64_str.split(',')[1]
-            with open(filepath, 'wb') as f:
-                f.write(base64.b64decode(base64_str))
+            clean_b64 = raw_b64
+            if ',' in clean_b64:
+                clean_b64 = clean_b64.split(',')[1]
+            try:
+                with open(filepath, 'wb') as f:
+                    f.write(base64.b64decode(clean_b64))
+            except Exception:
+                pass
                 
-            photo_saved_path = f"/uploads/targets/{filename}"
+            photo_saved_path = f"data:image/jpeg;base64,{clean_b64}"
             encodings = face_service.extract_encodings_from_file(filepath)
 
         else:
