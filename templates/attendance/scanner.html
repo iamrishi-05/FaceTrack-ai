@@ -63,7 +63,7 @@
                     </div>
                     
                     <div class="scanner-frame-wrapper mb-3">
-                        <video id="webcam" class="scanner-video-element" autoplay playsinline></video>
+                        <video id="webcam" class="scanner-video-element mirror-mode" autoplay playsinline></video>
                         <canvas id="overlayCanvas" class="scanner-canvas-element"></canvas>
                         <div class="scan-overlay-active"></div>
                     </div>
@@ -518,17 +518,18 @@ function drawBoundingBoxes(data) {
         const { top, right, bottom, left } = face.box;
         const width = right - left;
         const height = bottom - top;
+        const boxX = canvas.width - right;
         
         if (face.status === "matched") {
             ctx.strokeStyle = "#10b981"; // Emerald green
             ctx.lineWidth = 3;
-            ctx.strokeRect(left, top, width, height);
+            ctx.strokeRect(boxX, top, width, height);
             
             ctx.fillStyle = "#10b981";
-            ctx.fillRect(left, top - 28, width, 28);
+            ctx.fillRect(boxX, top - 28, width, 28);
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 14px sans-serif";
-            ctx.fillText(`${face.student.name} (${face.confidence}%)`, left + 8, top - 8);
+            ctx.fillText(`${face.student.name} (${face.confidence}%)`, boxX + 8, top - 8);
             
             updateFeatureStats(face.features);
             updateIdentityCard(face.student, face.confidence);
@@ -536,13 +537,13 @@ function drawBoundingBoxes(data) {
         } else {
             ctx.strokeStyle = "#ef4444"; // Red for unknown
             ctx.lineWidth = 2;
-            ctx.strokeRect(left, top, width, height);
+            ctx.strokeRect(boxX, top, width, height);
             
             ctx.fillStyle = "#ef4444";
-            ctx.fillRect(left, top - 24, width, 24);
+            ctx.fillRect(boxX, top - 24, width, 24);
             ctx.fillStyle = "#ffffff";
             ctx.font = "12px sans-serif";
-            ctx.fillText("Unknown Person", left + 6, top - 6);
+            ctx.fillText("Unknown Person", boxX + 6, top - 6);
             
             updateFeatureStats(face.features);
             handleScanUnknown();

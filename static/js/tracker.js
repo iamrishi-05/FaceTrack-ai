@@ -8,6 +8,7 @@ let canvasElement = null;
 let canvasCtx = null;
 let isScanning = false;
 let currentStream = null;
+let isMirrored = true;
 
 let lastFrameTime = performance.now();
 let fpsCounter = 0;
@@ -69,10 +70,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const cameraSelect = document.getElementById('cameraSelect');
+    const mirrorToggle = document.getElementById('mirrorToggle');
 
     if (startBtn) startBtn.addEventListener('click', startScanner);
     if (stopBtn) stopBtn.addEventListener('click', stopScanner);
 
+    if (mirrorToggle) {
+        isMirrored = mirrorToggle.checked;
+        mirrorToggle.addEventListener('change', (e) => {
+            isMirrored = e.target.checked;
+            updateMirrorState();
+        });
+    }
+
+    updateMirrorState();
     populateCameras();
 
     // Unlock Web Audio API on user click
@@ -80,6 +91,24 @@ document.addEventListener('DOMContentLoaded', () => {
         initAudioSynth();
     }, { once: true });
 });
+
+function updateMirrorState() {
+    const mirrorBadge = document.getElementById('mirrorBadge');
+    if (videoElement) {
+        if (isMirrored) {
+            videoElement.classList.add('mirror-mode');
+        } else {
+            videoElement.classList.remove('mirror-mode');
+        }
+    }
+    if (mirrorBadge) {
+        if (isMirrored) {
+            mirrorBadge.classList.remove('d-none');
+        } else {
+            mirrorBadge.classList.add('d-none');
+        }
+    }
+}
 
 async function populateCameras() {
     const cameraSelect = document.getElementById('cameraSelect');
@@ -127,6 +156,7 @@ async function startScanner() {
 
         videoElement.onloadedmetadata = () => {
             videoElement.play();
+            updateMirrorState();
             resizeCanvas();
             isScanning = true;
 
@@ -264,10 +294,11 @@ function renderOverlay(results, frameW, frameH) {
     results.forEach(res => {
         const { top, right, bottom, left } = res.location;
 
-        const x = left * scaleX;
-        const y = top * scaleY;
         const w = (right - left) * scaleX;
         const h = (bottom - top) * scaleY;
+        const y = top * scaleY;
+        // In mirror mode, flip X coordinate across display width so box aligns with mirrored video feed
+        const x = isMirrored ? (displayW - (right * scaleX)) : (left * scaleX);
 
         const isMatched = res.matched;
         const color = isMatched ? '#10b981' : '#ef4444'; // Emerald Green vs Crimson Red
@@ -300,6 +331,20 @@ function renderOverlay(results, frameW, frameH) {
         canvasCtx.lineTo(x + w, y + cornerLen);
         canvasCtx.stroke();
 
+        // Bottom-Left corner
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(x, y + h - cornerLen);
+        canvasCtx.lineTo(x, y + h);
+        canvasCtx.lineTo(x + cornerLen, y + h);
+        canvasCtx.stroke();
+
+        // Bottom-Right corner
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(x + w - cornerLen, y + h);
+        canvasCtx.lineTo(x + w, y + h);
+        canvasCtx.lineTo(x + w, y + h - cornerLen);
+        canvasCtx.stroke();
+
         // 3. Name & Confidence Badge Tag
         canvasCtx.fillStyle = color;
         const labelText = isMatched ? `${res.name} (${res.confidence}%)` : `UNKNOWN`;
@@ -309,11 +354,12 @@ function renderOverlay(results, frameW, frameH) {
         const badgeH = 26;
         const badgeW = textWidth + 20;
         const badgeY = Math.max(0, y - badgeH - 6);
+        const badgeX = Math.min(Math.max(0, x), Math.max(0, displayW - badgeW));
 
-        canvasCtx.fillRect(x, badgeY, badgeW, badgeH);
+        canvasCtx.fillRect(badgeX, badgeY, badgeW, badgeH);
 
         canvasCtx.fillStyle = '#000000';
-        canvasCtx.fillText(labelText, x + 10, badgeY + 18);
+        canvasCtx.fillText(labelText, badgeX + 10, badgeY + 18);
     });
 }
 

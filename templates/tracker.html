@@ -80,11 +80,21 @@
 
             <!-- Webcam & Overlay Container -->
             <div class="webcam-viewport glass-card relative-box rounded-4 overflow-hidden bg-black" style="min-height: 440px;">
-                <!-- Video Element -->
-                <video id="webcamVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; display: block;"></video>
+                <!-- Video Element (Mirrored for natural mirror-like appearance) -->
+                <video id="webcamVideo" class="mirror-mode" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; display: block;"></video>
 
                 <!-- Bounding Box Canvas -->
                 <canvas id="overlayCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+
+                <!-- Live Camera HUD Status Badges -->
+                <div class="position-absolute top-0 start-0 m-3 d-flex align-items-center gap-2" id="cameraFeedBadges" style="z-index: 5; pointer-events: none;">
+                    <span class="badge bg-dark bg-opacity-75 text-emerald border border-emerald border-opacity-30 px-2 py-1 extra-small rounded-pill" style="backdrop-filter: blur(8px);">
+                        <i class="bi bi-broadcast me-1"></i> LIVE HD
+                    </span>
+                    <span class="badge bg-dark bg-opacity-75 text-cyan border border-cyan border-opacity-30 px-2 py-1 extra-small rounded-pill" id="mirrorBadge" style="backdrop-filter: blur(8px);">
+                        <i class="bi bi-symmetry-vertical me-1"></i> MIRROR ACTIVE
+                    </span>
+                </div>
 
                 <!-- Initial Idle Placeholder -->
                 <div class="camera-placeholder d-flex flex-column align-items-center justify-content-center p-5 text-center text-muted" id="cameraPlaceholder">
@@ -98,16 +108,22 @@
             </div>
 
             <!-- Scanner Control Bar -->
-            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-secondary border-opacity-10">
-                <div class="d-flex align-items-center gap-3 extra-small text-muted">
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-secondary border-opacity-10 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3 extra-small text-muted flex-wrap">
                     <span><i class="bi bi-activity text-emerald"></i> FPS: <strong id="fpsCounter">0</strong></span>
                     <span><i class="bi bi-stopwatch text-cyan"></i> Latency: <strong id="latencyCounter">0ms</strong></span>
                     <span><i class="bi bi-people-fill text-purple"></i> Faces in View: <strong id="facesCount">0</strong></span>
                 </div>
                 
-                <div class="form-check form-switch extra-small">
-                    <input class="form-check-input" type="checkbox" id="audioAlertToggle" checked>
-                    <label class="form-check-label text-muted" for="audioAlertToggle"><i class="bi bi-volume-up-fill me-1"></i> Target Audio Alerts</label>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check form-switch extra-small">
+                        <input class="form-check-input" type="checkbox" id="mirrorToggle" checked>
+                        <label class="form-check-label text-muted" for="mirrorToggle"><i class="bi bi-symmetry-vertical me-1 text-cyan"></i> Mirror Camera</label>
+                    </div>
+                    <div class="form-check form-switch extra-small">
+                        <input class="form-check-input" type="checkbox" id="audioAlertToggle" checked>
+                        <label class="form-check-label text-muted" for="audioAlertToggle"><i class="bi bi-volume-up-fill me-1"></i> Target Audio Alerts</label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -177,7 +193,15 @@
         <div class="glass-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="mb-0 fw-bold theme-text"><i class="bi bi-clock-history me-2 text-cyan"></i>Recent Detection Events</h6>
-                <a href="{{ url_for('tracker.detections_history') }}" class="extra-small text-cyan text-decoration-none">View All</a>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ url_for('tracker.export_logs', format='pdf') }}" class="badge bg-danger bg-opacity-20 text-danger text-decoration-none border border-danger border-opacity-30 extra-small" title="Quick PDF Dossier Export">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                    </a>
+                    <a href="{{ url_for('tracker.export_logs', format='excel') }}" class="badge bg-success bg-opacity-20 text-success text-decoration-none border border-success border-opacity-30 extra-small" title="Quick Excel Spreadsheet Export">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                    </a>
+                    <a href="{{ url_for('tracker.detections_history') }}" class="extra-small text-cyan text-decoration-none ms-1">View All</a>
+                </div>
             </div>
 
             <div class="detection-feed-list" id="detectionFeedList" style="max-height: 280px; overflow-y: auto;">

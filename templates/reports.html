@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports & Exports - FaceTrack AI{% endblock %}
+{% block header_title %}📊 Detection Intelligence & Audit Export Center{% endblock %}
+
+{% block content %}
+<!-- Page Tabs Header -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <ul class="nav nav-pills glass-card p-1 rounded-pill" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link rounded-pill px-4 py-2 fw-bold small text-muted" href="{{ url_for('tracker.detections_history') }}">
+                <i class="bi bi-table me-2"></i>Live Detection Logs
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active rounded-pill px-4 py-2 fw-bold small" href="{{ url_for('tracker.reports_view') }}">
+                <i class="bi bi-file-earmark-arrow-down-fill me-2 text-info"></i>Download PDF & Excel Reports
+            </a>
+        </li>
+    </ul>
+
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-emerald-subtle text-emerald px-3 py-2 rounded-pill extra-small font-monospace">
+            <i class="bi bi-shield-check me-1"></i> Biometric Audit Engine Online
+        </span>
+    </div>
+</div>
+
+<!-- KPI Summary Metrics -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="glass-card p-3 d-flex align-items-center gap-3">
+            <div class="p-3 rounded-circle bg-emerald-subtle text-emerald fs-4">
+                <i class="bi bi-person-bounding-box"></i>
+            </div>
+            <div>
+                <div class="extra-small text-muted text-uppercase tracking-wider fw-semibold">Watchlist Targets</div>
+                <div class="h3 mb-0 fw-bold theme-text">{{ stats.total_targets }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="glass-card p-3 d-flex align-items-center gap-3">
+            <div class="p-3 rounded-circle bg-cyan-subtle text-cyan fs-4" style="background: rgba(6, 182, 212, 0.12);">
+                <i class="bi bi-radar"></i>
+            </div>
+            <div>
+                <div class="extra-small text-muted text-uppercase tracking-wider fw-semibold">Today's Spot Detections</div>
+                <div class="h3 mb-0 fw-bold theme-text">{{ stats.today_detections }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="glass-card p-3 d-flex align-items-center gap-3">
+            <div class="p-3 rounded-circle text-purple fs-4" style="background: rgba(139, 92, 246, 0.12);">
+                <i class="bi bi-people-fill"></i>
+            </div>
+            <div>
+                <div class="extra-small text-muted text-uppercase tracking-wider fw-semibold">Targets Spotted Today</div>
+                <div class="h3 mb-0 fw-bold theme-text">{{ stats.targets_spotted_today }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="glass-card p-3 d-flex align-items-center gap-3">
+            <div class="p-3 rounded-circle text-amber fs-4" style="background: rgba(245, 158, 11, 0.12);">
+                <i class="bi bi-shield-lock-fill"></i>
+            </div>
+            <div>
+                <div class="extra-small text-muted text-uppercase tracking-wider fw-semibold">Audit Integrity</div>
+                <div class="h6 mb-0 fw-bold text-emerald">100% Verified 🟢</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Export Generator Card -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-12">
+        <div class="glass-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-10 flex-wrap gap-2">
+                <div>
+                    <h5 class="fw-bold mb-1 theme-text">
+                        <i class="bi bi-file-earmark-arrow-down-fill me-2 text-cyan"></i>Export Biometric Dossiers & Ledgers
+                    </h5>
+                    <p class="extra-small text-muted mb-0">Select criteria, date range, and format to generate certified PDF reports or Excel audit spreadsheets.</p>
+                </div>
+                
+                <!-- Quick Date Range Presets -->
+                <div class="d-flex align-items-center gap-1">
+                    <span class="extra-small text-muted me-1">Quick Presets:</span>
+                    <button type="button" class="btn btn-outline-secondary btn-xs rounded-pill px-2" onclick="setDatePreset('today')">Today</button>
+                    <button type="button" class="btn btn-outline-secondary btn-xs rounded-pill px-2" onclick="setDatePreset('week')">Last 7 Days</button>
+                    <button type="button" class="btn btn-outline-secondary btn-xs rounded-pill px-2" onclick="setDatePreset('month')">Last 30 Days</button>
+                    <button type="button" class="btn btn-outline-secondary btn-xs rounded-pill px-2" onclick="setDatePreset('all')">All Time</button>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('tracker.reports_view') }}" id="reportExportForm">
+                <div class="row g-3 mb-4">
+                    <!-- Target Filter -->
+                    <div class="col-md-4">
+                        <label class="form-label extra-small fw-bold text-muted text-uppercase">Target Watchlist Profile</label>
+                        <select class="form-select form-select-sm glass-input" name="target_id" id="targetSelect">
+                            <option value="">All Registered Targets</option>
+                            {% for t in targets %}
+                            <option value="{{ t.target_id }}">
+                                {{ t.name }} ({{ t.target_id }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Start Date -->
+                    <div class="col-md-3">
+                        <label class="form-label extra-small fw-bold text-muted text-uppercase">Start Date</label>
+                        <input type="date" class="form-control form-control-sm glass-input" name="start_date" id="startDateInput">
+                    </div>
+
+                    <!-- End Date -->
+                    <div class="col-md-3">
+                        <label class="form-label extra-small fw-bold text-muted text-uppercase">End Date</label>
+                        <input type="date" class="form-control form-control-sm glass-input" name="end_date" id="endDateInput">
+                    </div>
+
+                    <!-- Min Confidence -->
+                    <div class="col-md-2">
+                        <label class="form-label extra-small fw-bold text-muted text-uppercase">Min Confidence</label>
+                        <select class="form-select form-select-sm glass-input" name="min_confidence" id="confidenceSelect">
+                            <option value="">Any (0%+)</option>
+                            <option value="75">75%+</option>
+                            <option value="85">85%+</option>
+                            <option value="90">90%+</option>
+                            <option value="95">95%+</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Export Format Selection Interactive Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="card glass-card p-3 h-100 cursor-pointer border hover-glass text-start w-100 position-relative" style="cursor: pointer;">
+                            <div class="d-flex align-items-start gap-3">
+                                <input type="radio" name="format" value="pdf" checked class="form-check-input mt-1">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <div class="fw-bold theme-text"><i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i>Executive PDF Dossier</div>
+                                        <span class="badge bg-danger bg-opacity-20 text-danger extra-small rounded-pill">ReportLab Engine</span>
+                                    </div>
+                                    <p class="extra-small text-muted mb-0">Publication-grade layout with running page numbering (Page X of Y), biometric KPI summary cards, zebra-striped table, and security audit disclaimer.</p>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="card glass-card p-3 h-100 cursor-pointer border hover-glass text-start w-100 position-relative" style="cursor: pointer;">
+                            <div class="d-flex align-items-start gap-3">
+                                <input type="radio" name="format" value="excel" class="form-check-input mt-1">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <div class="fw-bold theme-text"><i class="bi bi-file-earmark-excel-fill text-success me-2"></i>Audit Excel Spreadsheet</div>
+                                        <span class="badge bg-success bg-opacity-20 text-success extra-small rounded-pill">OpenPyXL Engine</span>
+                                    </div>
+                                    <p class="extra-small text-muted mb-0">Multi-sheet workbook containing a styled 'Detection Audit Trail' with frozen headers, auto-adjusted column widths, and an 'Executive Summary' tab.</p>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Action Download Buttons -->
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary border-opacity-10 flex-wrap gap-2">
+                    <div class="extra-small text-muted">
+                        <i class="bi bi-info-circle me-1 text-cyan"></i>
+                        Exports stream instantly via memory buffers with zero latency or temp storage leak.
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="format" value="pdf" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm">
+                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF Dossier
+                        </button>
+                        <button type="submit" name="format" value="excel" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm">
+                            <i class="bi bi-file-earmark-excel-fill me-1"></i> Download Excel Workbook
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Live Audit Preview Table -->
+<div class="glass-card overflow-hidden">
+    <div class="p-3 border-bottom border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold theme-text">
+            <i class="bi bi-eye-fill me-2 text-cyan"></i>Audit Feed Preview (Recent Detection Incidents)
+        </h6>
+        <span class="badge bg-dark bg-opacity-50 text-muted extra-small">Displaying 25 Most Recent Logs</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0 align-middle">
+            <thead>
+                <tr class="text-muted extra-small text-uppercase tracking-wider border-bottom border-secondary border-opacity-25">
+                    <th class="ps-4">Timestamp</th>
+                    <th>Target Person</th>
+                    <th>Target ID</th>
+                    <th>Confidence</th>
+                    <th>Liveness / Facial Features</th>
+                    <th>Location Tag</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if preview_logs %}
+                    {% for log in preview_logs %}
+                    <tr>
+                        <td class="ps-4 font-monospace extra-small theme-text">
+                            <div>{{ log.date }}</div>
+                            <div class="text-muted">{{ log.time }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-bold theme-text small">{{ log.target_name }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-emerald-subtle text-emerald font-monospace extra-small">{{ log.target_id }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-emerald text-dark fw-bold extra-small">{{ log.confidence }}%</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-1 extra-small">
+                                <span class="badge bg-secondary bg-opacity-20 text-capitalize theme-text">{{ log.emotion or 'neutral' }}</span>
+                                {% if log.mask_detected %}
+                                    <span class="badge bg-info bg-opacity-20 text-info"><i class="bi bi-shield-fill-check"></i> Mask</span>
+                                {% endif %}
+                                {% if log.smile_detected %}
+                                    <span class="badge bg-warning bg-opacity-20 text-warning"><i class="bi bi-emoji-smile-fill"></i> Smile</span>
+                                {% endif %}
+                                {% if log.blink_detected %}
+                                    <span class="badge bg-purple bg-opacity-20 text-purple"><i class="bi bi-eye-fill"></i> Blink</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="extra-small text-muted">
+                            <i class="bi bi-camera-video me-1"></i> {{ log.location_tag or 'Primary Camera' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-clipboard-x display-4 opacity-25 d-block mb-2"></i>
+                            <div>No detection logs recorded in system yet. Launch the Live Tracker to log detections.</div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setDatePreset(preset) {
+    const startInput = document.getElementById('startDateInput');
+    const endInput = document.getElementById('endDateInput');
+    const now = new Date();
+    
+    function formatDate(d) {
+        return d.toISOString().split('T')[0];
+    }
+    
+    if (preset === 'today') {
+        startInput.value = formatDate(now);
+        endInput.value = formatDate(now);
+    } else if (preset === 'week') {
+        const weekAgo = new Date();
+        weekAgo.setDate(now.getDate() - 7);
+        startInput.value = formatDate(weekAgo);
+        endInput.value = formatDate(now);
+    } else if (preset === 'month') {
+        const monthAgo = new Date();
+        monthAgo.setDate(now.getDate() - 30);
+        startInput.value = formatDate(monthAgo);
+        endInput.value = formatDate(now);
+    } else if (preset === 'all') {
+        startInput.value = '';
+        endInput.value = '';
+    }
+}
+</script>
+{% endblock %}

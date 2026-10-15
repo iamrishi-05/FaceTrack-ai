@@ -4,6 +4,33 @@
 {% block header_title %}📜 Live Face Detection & Tracking Logs{% endblock %}
 
 {% block content %}
+<!-- Page Tabs Header -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <ul class="nav nav-pills glass-card p-1 rounded-pill" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active rounded-pill px-4 py-2 fw-bold small" href="{{ url_for('tracker.detections_history') }}">
+                <i class="bi bi-table me-2"></i>Live Detection Logs
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link rounded-pill px-4 py-2 fw-bold small text-muted" href="{{ url_for('tracker.reports_view') }}">
+                <i class="bi bi-file-earmark-arrow-down-fill me-2 text-info"></i>Download PDF & Excel Reports
+            </a>
+        </li>
+    </ul>
+
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ url_for('tracker.export_logs', format='pdf', target_id=request.args.get('target_id', ''), date=request.args.get('date', '')) }}" 
+           class="btn btn-danger btn-sm rounded-pill px-3 fw-bold shadow-sm">
+            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+        </a>
+        <a href="{{ url_for('tracker.export_logs', format='excel', target_id=request.args.get('target_id', ''), date=request.args.get('date', '')) }}" 
+           class="btn btn-success btn-sm rounded-pill px-3 fw-bold shadow-sm">
+            <i class="bi bi-file-earmark-excel-fill me-1"></i> Download Excel
+        </a>
+    </div>
+</div>
+
 <div class="glass-card p-3 mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
         <form class="d-flex flex-wrap align-items-center gap-2 flex-grow-1" method="GET" action="{{ url_for('tracker.detections_history') }}">

@@ -331,3 +331,24 @@ body {
         margin-left: 0;
     }
 }
+
+/* Mirror Camera Feed Styles */
+.mirror-mode,
+video.mirror-feed {
+    transform: scaleX(-1);
+    -webkit-transform: scaleX(-1);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-xs {
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    border-radius: 6px;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+

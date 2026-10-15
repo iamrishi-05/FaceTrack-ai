@@ -138,8 +138,8 @@ def log_detection(target_id, target_name, confidence, emotion="neutral", smile=F
         ))
     log_event("INFO", "DetectionLog", f"Target detected: {target_name} ({target_id}) - Confidence: {confidence:.1f}%")
 
-def get_detection_logs(limit=100, target_id=None, date=None, user_id=None):
-    """Retrieves detection logs with optional filtering."""
+def get_detection_logs(limit=100, target_id=None, date=None, start_date=None, end_date=None, min_confidence=None, user_id=None):
+    """Retrieves detection logs with optional filtering for tables and report exports."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         query = 'SELECT * FROM detection_logs'
@@ -152,12 +152,26 @@ def get_detection_logs(limit=100, target_id=None, date=None, user_id=None):
         if date:
             conditions.append('date = ?')
             params.append(date)
+        if start_date:
+            conditions.append('date >= ?')
+            params.append(start_date)
+        if end_date:
+            conditions.append('date <= ?')
+            params.append(end_date)
+        if min_confidence:
+            try:
+                conditions.append('confidence >= ?')
+                params.append(float(min_confidence))
+            except (ValueError, TypeError):
+                pass
             
         if conditions:
             query += ' WHERE ' + ' AND '.join(conditions)
             
-        query += ' ORDER BY timestamp DESC LIMIT ?'
-        params.append(limit)
+        query += ' ORDER BY timestamp DESC'
+        if limit:
+            query += ' LIMIT ?'
+            params.append(limit)
         
         cursor.execute(query, params)
         rows = cursor.fetchall()
